@@ -1,0 +1,376 @@
+@import "tailwindcss";
+
+:root {
+  color-scheme: light dark;
+
+  --surface-canvas: light-dark(oklch(1 0 0), oklch(0.33 0.012 217));
+  --surface-shell: light-dark(oklch(0.975 0.002 197), oklch(0.295 0.01 220));
+  --surface-sunken: light-dark(oklch(0.955 0.003 201), oklch(0.37 0.013 215));
+  --surface-overlay: light-dark(oklch(1 0 0), oklch(0.33 0.012 217));
+  --surface-scrim: light-dark(rgb(0 0 0 / 12%), rgb(0 0 0 / 45%));
+
+  --state-hover: light-dark(rgb(0 0 0 / 5%), rgb(255 255 255 / 7%));
+  --state-pressed: light-dark(rgb(0 0 0 / 8%), rgb(255 255 255 / 10%));
+
+  --text: light-dark(oklch(0.24 0.009 221), oklch(0.945 0.003 205));
+  --text-muted: light-dark(oklch(0.485 0.018 213), oklch(0.77 0.012 216));
+  --text-disabled: light-dark(oklch(0.7 0.015 214), oklch(0.6 0.02 213));
+  --text-on-solid: oklch(1 0 0);
+
+  --line: light-dark(oklch(0.9 0.006 217), oklch(0.46 0.016 215));
+  --border: light-dark(oklch(0.82 0.009 218), oklch(0.56 0.02 213));
+  --border-field: light-dark(oklch(0.62 0.018 214), oklch(0.68 0.02 213));
+
+  --accent: light-dark(oklch(0.5 0.181 258), oklch(0.55 0.19 258));
+  --accent-hover: light-dark(oklch(0.44 0.159 258), oklch(0.49 0.177 258));
+  --accent-text: light-dark(oklch(0.5 0.181 258), oklch(0.79 0.105 258));
+  --accent-mark: light-dark(oklch(0.5 0.181 258), oklch(0.7 0.15 258));
+  --accent-surface: light-dark(oklch(0.94 0.028 258), oklch(0.41 0.11 258));
+  --accent-line: light-dark(oklch(0.86 0.067 258), oklch(0.53 0.12 258));
+
+  --danger: light-dark(oklch(0.53 0.18 27), oklch(0.58 0.18 27));
+  --danger-hover: light-dark(oklch(0.47 0.18 27), oklch(0.52 0.18 27));
+  --danger-text: light-dark(oklch(0.5 0.18 27), oklch(0.79 0.115 27));
+  --danger-mark: light-dark(oklch(0.53 0.18 27), oklch(0.7 0.15 27));
+  --danger-surface: light-dark(oklch(0.945 0.027 27), oklch(0.41 0.1 27));
+  --danger-line: light-dark(oklch(0.86 0.073 27), oklch(0.53 0.1 27));
+  --warning: oklch(0.62 0.127 75);
+  --warning-text: light-dark(oklch(0.5 0.103 75), oklch(0.8 0.1 75));
+  --warning-mark: light-dark(oklch(0.62 0.127 75), oklch(0.75 0.13 75));
+  --warning-surface: light-dark(oklch(0.945 0.043 75), oklch(0.41 0.085 75));
+  --warning-line: light-dark(oklch(0.86 0.09 75), oklch(0.53 0.08 75));
+  --success: oklch(0.55 0.14 150);
+  --success-text: light-dark(oklch(0.5 0.134 150), oklch(0.79 0.12 150));
+  --success-surface: light-dark(oklch(0.945 0.045 150), oklch(0.41 0.09 150));
+  --success-line: light-dark(oklch(0.86 0.09 150), oklch(0.53 0.09 150));
+
+  --ring: var(--accent-mark);
+  --radius: 0.5rem;
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+@custom-variant dark {
+  &:where([data-theme="dark"], [data-theme="dark"] *) {
+    @slot;
+  }
+  @media (prefers-color-scheme: dark) {
+    &:where(:not([data-theme="light"], [data-theme="light"] *)) {
+      @slot;
+    }
+  }
+}
+
+@theme inline {
+  --color-canvas: var(--surface-canvas);
+  --color-shell: var(--surface-shell);
+  --color-sunken: var(--surface-sunken);
+  --color-overlay: var(--surface-overlay);
+  --color-state-hover: var(--state-hover);
+  --color-state-pressed: var(--state-pressed);
+
+  --color-fg: var(--text);
+  --color-fg-muted: var(--text-muted);
+  --color-fg-disabled: var(--text-disabled);
+  --color-on-solid: var(--text-on-solid);
+
+  --color-line: var(--line);
+  --color-border: var(--border);
+  --color-field: var(--border-field);
+
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-text: var(--accent-text);
+  --color-accent-mark: var(--accent-mark);
+  --color-accent-surface: var(--accent-surface);
+  --color-accent-line: var(--accent-line);
+
+  --color-danger: var(--danger);
+  --color-danger-hover: var(--danger-hover);
+  --color-danger-text: var(--danger-text);
+  --color-danger-mark: var(--danger-mark);
+  --color-danger-surface: var(--danger-surface);
+  --color-danger-line: var(--danger-line);
+
+  --color-warning: var(--warning);
+  --color-warning-text: var(--warning-text);
+  --color-warning-mark: var(--warning-mark);
+  --color-warning-surface: var(--warning-surface);
+  --color-warning-line: var(--warning-line);
+
+  --color-success: var(--success);
+  --color-success-text: var(--success-text);
+  --color-success-surface: var(--success-surface);
+  --color-success-line: var(--success-line);
+
+  --color-ring: var(--ring);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --font-sans: system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+}
+
+@utility scrim {
+  background-color: var(--surface-scrim);
+  backdrop-filter: blur(12px);
+}
+
+/* Tailwind v4ではborder-colorのデフォルトを `currentColor` に設定しているため上書き */
+@layer base {
+  *,
+  ::before,
+  ::after {
+    border-color: var(--line);
+  }
+}
+
+html {
+  font-family: var(--font-sans);
+  font-size: 16px;
+  color: var(--text);
+  background: var(--surface-canvas);
+}
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+}
+
+#root {
+  min-height: 100dvh;
+}
+
+*:focus-visible {
+  outline: 2px solid var(--accent-mark);
+  outline-offset: 2px;
+}
+
+button:not(:disabled),
+[role="button"]:not(:disabled) {
+  cursor: pointer;
+}
+
+.article-body {
+  max-width: 100%;
+  overflow-x: auto;
+  font-size: 17px;
+  line-height: 1.8;
+}
+
+.article-body p + p {
+  margin-top: 1.2em;
+}
+
+.article-body h1,
+.article-body h2,
+.article-body h3,
+.article-body h4,
+.article-body h5,
+.article-body h6 {
+  margin-block-start: 24px;
+  margin-block-end: 8px;
+  line-height: 1.35;
+  font-weight: 650;
+}
+
+.article-body h1 {
+  font-size: 1.5em;
+}
+
+.article-body h2 {
+  font-size: 1.3em;
+}
+
+.article-body h3 {
+  font-size: 1.15em;
+}
+
+.article-body h4,
+.article-body h5,
+.article-body h6 {
+  font-size: 1em;
+}
+
+.article-body ul,
+.article-body ol {
+  padding-inline-start: 1.5em;
+  margin-block: 12px;
+}
+
+.article-body ul {
+  list-style: disc;
+}
+
+.article-body ol {
+  list-style: decimal;
+}
+
+.article-body li + li {
+  margin-block-start: 4px;
+}
+
+.article-body dl {
+  margin-block: 12px;
+}
+
+.article-body dt {
+  font-weight: 650;
+}
+
+.article-body dd {
+  margin-inline-start: 1.5em;
+  margin-block-end: 8px;
+}
+
+.article-body blockquote {
+  margin-block: 16px;
+  padding-inline-start: 16px;
+  border-inline-start: 4px solid var(--line);
+}
+
+.article-body table {
+  border-collapse: collapse;
+  margin-block: 16px;
+  width: max-content;
+  max-width: 100%;
+}
+
+.article-body th,
+.article-body td {
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  vertical-align: top;
+}
+
+.article-body th {
+  font-weight: 650;
+  background: var(--surface-sunken);
+}
+
+.article-body figure {
+  margin-block: 16px;
+}
+
+.article-body figcaption {
+  margin-block-start: 8px;
+  font-size: 0.875em;
+  color: var(--text-muted);
+}
+
+.article-body hr {
+  margin-block: 24px;
+  border: 0;
+  border-block-start: 1px solid var(--line);
+}
+
+.article-body pre,
+.article-body code {
+  font-family: var(--font-mono);
+}
+
+.article-body pre {
+  overflow-x: auto;
+  max-width: 100%;
+  padding: 12px;
+  background: var(--surface-sunken);
+  border-radius: var(--radius);
+}
+
+.article-body img,
+.article-body video {
+  max-width: 100%;
+  height: auto;
+  cursor: zoom-in;
+}
+
+.article-body figure img,
+.article-body figure video {
+  margin-block: 0;
+}
+
+.article-body a {
+  color: inherit;
+  text-decoration: underline;
+}
+
+.article-body ins.article-diff-add,
+.article-body del.article-diff-del {
+  padding-inline: 0.15em;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+
+.article-body ins.article-diff-add {
+  background-color: var(--success-surface);
+  color: var(--success-text);
+  text-decoration: none;
+}
+
+.article-body del.article-diff-del {
+  background-color: var(--danger-surface);
+  color: var(--danger-text);
+  text-decoration: line-through;
+}
+
+.article-body
+  ins.article-diff-add:has(
+    p,
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6,
+    ul,
+    ol,
+    pre,
+    blockquote,
+    table,
+    div,
+    figure,
+    hr,
+    section
+  ),
+.article-body
+  del.article-diff-del:has(
+    p,
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6,
+    ul,
+    ol,
+    pre,
+    blockquote,
+    table,
+    div,
+    figure,
+    hr,
+    section
+  ) {
+  display: block;
+  margin-block: 0.6em;
+  padding-block: 0.15em;
+  padding-inline: 0.4em;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="Shift_JIS"?>
+<rss version="2.0">
+  <channel>
+    <title>UTF-8 body with Shift_JIS prolog</title>
+    <link>https://example.com/</link>
+    <item>
+      <title>日本語タイトル</title>
+      <link>https://example.com/sjis</link>
+      <guid>sjis-1</guid>
+      <pubDate>Tue, 02 Jan 2024 12:00:00 GMT</pubDate>
+      <description>本文はUTF-8</description>
+    </item>
+  </channel>
+</rss>

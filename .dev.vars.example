@@ -1,0 +1,9 @@
+# Local development secrets. Copy this file to .dev.vars.
+# BOOTSTRAP_TOKEN registers the very first passkey: open /login?bootstrap=<token>.
+BOOTSTRAP_TOKEN=dev-bootstrap-token
+# IMAGE_PROXY_KEY signs the image proxy URLs. Use a long random value in production.
+IMAGE_PROXY_KEY=dev-image-proxy-key-change-me
+# Public read-only demo. Uncomment to try the sample feeds locally.
+# wrangler.jsonc leaves DEMO_MODE empty so this line can turn it on.
+# Omit DEMO_FEEDS to use the built-in list in src/server/demo/feeds.ts.
+# DEMO_MODE=1

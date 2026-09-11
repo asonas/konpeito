@@ -1,0 +1,14 @@
+node_modules
+dist
+.wrangler
+.tanstack
+.dev.vars
+.mf
+.vite
+*.local
+worker-configuration.d.ts
+src/client/routeTree.gen.ts
+playwright-report
+test-results
+.DS_Store
+*.tsbuildinfo

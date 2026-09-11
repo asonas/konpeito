@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>Relative</title>
+    <link>/blog/</link>
+    <item>
+      <title>相対URL</title>
+      <link>/blog/hello</link>
+      <guid isPermaLink="false">rel-1</guid>
+      <pubDate>Fri, 05 Jan 2024 00:00:00 GMT</pubDate>
+      <description>&lt;p&gt;&lt;a href=&quot;./more&quot;&gt;more&lt;/a&gt;&lt;img src=&quot;/img/a.png&quot;&gt;&lt;/p&gt;</description>
+    </item>
+  </channel>
+</rss>

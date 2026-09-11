@@ -1,0 +1,45 @@
+minimumReleaseAge: 10080
+strictDepBuilds: true
+onlyBuiltDependencies:
+  - '@biomejs/biome'
+  - esbuild
+  - workerd
+  - sharp
+  - '@tailwindcss/oxide'
+  - unrs-resolver
+  - '@parcel/watcher'
+  - msw
+trustPolicy: no-downgrade
+trustPolicyExclude:
+  - semver
+minimumReleaseAgeExclude:
+  - wrangler
+  - '@cloudflare/vite-plugin'
+  - '@cloudflare/vitest-plugin'
+  - '@cloudflare/workerd-darwin-64'
+  - '@cloudflare/workerd-darwin-arm64'
+  - '@cloudflare/workerd-linux-64'
+  - '@cloudflare/workerd-linux-arm64'
+  - '@cloudflare/workerd-windows-64'
+  - workerd
+  - miniflare
+  - vite
+  - '@vitejs/plugin-react'
+  - '@biomejs/biome'
+  - '@biomejs/cli-darwin-arm64'
+  - '@biomejs/cli-darwin-x64'
+  - '@biomejs/cli-linux-arm64'
+  - '@biomejs/cli-linux-arm64-musl'
+  - '@biomejs/cli-linux-x64'
+  - '@biomejs/cli-linux-x64-musl'
+  - '@biomejs/cli-win32-arm64'
+  - '@biomejs/cli-win32-x64'
+  - '@hono/zod-validator'
+  - '@tanstack/query-core'
+  - '@tanstack/react-query'
+  - lucide-react
+  - zod
+allowBuilds:
+  esbuild: true
+  msw: true
+  workerd: true

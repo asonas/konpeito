@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>No GUID</title>
+    <link>https://example.com/</link>
+    <item>
+      <title>URL only</title>
+      <link>https://example.com/no-guid?utm_campaign=x</link>
+      <pubDate>Thu, 04 Jan 2024 00:00:00 GMT</pubDate>
+      <description>no guid here</description>
+    </item>
+    <item>
+      <title></title>
+      <description></description>
+    </item>
+  </channel>
+</rss>

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>日本語ブログ</title>
+    <link>https://example.com/</link>
+    <description>テスト用フィード</description>
+    <language>ja</language>
+    <ttl>60</ttl>
+    <item>
+      <title>最初の記事</title>
+      <link>https://example.com/posts/1?utm_source=feed</link>
+      <guid isPermaLink="false">post-1</guid>
+      <pubDate>Wed, 01 Jan 2020 00:00:00 GMT</pubDate>
+      <content:encoded><![CDATA[<p>本文です。</p>]]></content:encoded>
+    </item>
+    <item>
+      <title>新しい記事</title>
+      <link>https://example.com/posts/2</link>
+      <guid isPermaLink="false">post-2</guid>
+      <pubDate>Mon, 01 Sep 2026 00:00:00 GMT</pubDate>
+      <description>抜粋だけ</description>
+    </item>
+  </channel>
+</rss>

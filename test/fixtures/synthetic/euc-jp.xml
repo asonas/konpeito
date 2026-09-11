@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="EUC-JP"?>
+<rss version="2.0"><channel><title>euc</title><link>https://example.com/</link>
+<item><title>日本語</title><guid>euc-1</guid><pubDate>Thu, 02 Jan 2020 00:00:00 GMT</pubDate>
+<description>本文</description></item></channel></rss>

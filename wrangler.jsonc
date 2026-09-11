@@ -1,0 +1,75 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  // This file configures local development. Deployments do not use it:
+  // `konpeito setup` generates a configuration from the build output and your
+  // answers, so there is nothing here to edit before deploying.
+  "name": "konpeito",
+  "main": "src/server/index.ts",
+  "compatibility_date": "2026-09-01",
+  "assets": {
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": [
+      "/api/*",
+      "/auth/*",
+      "/accounts/*",
+      "/reader/*",
+      "/greader/*",
+      "/img",
+      "/robots.txt",
+      "/__test",
+      "/__test/*"
+    ]
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "konpeito",
+      // Local development runs against a local SQLite file, so the placeholder
+      // is never used. `konpeito setup` fills in the real ID when it deploys.
+      "database_id": "local-development-only",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "queues": {
+    "producers": [{ "queue": "feed-fetch", "binding": "FEED_QUEUE" }],
+    "consumers": [
+      {
+        "queue": "feed-fetch",
+        "max_batch_size": 10,
+        "max_batch_timeout": 5,
+        "max_retries": 3,
+        "retry_delay": 60,
+        "max_concurrency": 5,
+        "dead_letter_queue": "feed-fetch-dlq"
+      }
+    ]
+  },
+  "secrets": {
+    "required": ["BOOTSTRAP_TOKEN", "IMAGE_PROXY_KEY"]
+  },
+  // Empty here so a personal deploy never turns into the public demo.
+  // Locally, set DEMO_MODE=1 in .dev.vars (see docs/demo.md).
+  "vars": {
+    "DEMO_MODE": "",
+    "DEMO_FEEDS": ""
+  },
+  "triggers": {
+    "crons": ["*/5 * * * *", "20 17 * * *"]
+  },
+  "ratelimits": [
+    {
+      "name": "AUTH_LIMITER",
+      "namespace_id": "1001",
+      "simple": { "limit": 10, "period": 60 }
+    }
+  ],
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1,
+    "traces": { "enabled": true }
+  },
+  "upload_source_maps": true,
+  "limits": { "cpu_ms": 60000 },
+  "workers_dev": true
+}

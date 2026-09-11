@@ -1,0 +1,100 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Google Reader API > returns ClientLogin, user-info, subscription list, unread-count, and stream shapes > stream-contents 1`] = `
+{
+  "id": "user/-/state/com.google/reading-list",
+  "items": [
+    {
+      "alternate": [
+        {
+          "href": "https://example.com/post",
+          "type": "text/html",
+        },
+      ],
+      "author": "Ada",
+      "canonical": [
+        {
+          "href": "https://example.com/post",
+        },
+      ],
+      "categories": [
+        "user/-/state/com.google/reading-list",
+        "user/-/label/Blog",
+      ],
+      "crawlTimeMsec": "1756857600000",
+      "id": "tag:google.com,2005:reader/item/000000000000001F",
+      "origin": {
+        "htmlUrl": "https://example.com/",
+        "streamId": "feed/123",
+        "title": "Custom",
+      },
+      "published": 1756857600,
+      "summary": {
+        "content": "<p>body</p>",
+        "direction": "ltr",
+      },
+      "timestampUsec": "1756857600000000",
+      "title": "Hello",
+      "updated": 1756857600,
+    },
+  ],
+  "updated": 0,
+}
+`;
+
+exports[`Google Reader API > returns ClientLogin, user-info, subscription list, unread-count, and stream shapes > stream-ids 1`] = `
+{
+  "itemRefs": [
+    {
+      "directStreamIds": [
+        "feed/123",
+      ],
+      "id": "31",
+      "timestampUsec": "1756857600000000",
+    },
+  ],
+}
+`;
+
+exports[`Google Reader API > returns ClientLogin, user-info, subscription list, unread-count, and stream shapes > subscription-list 1`] = `
+{
+  "subscriptions": [
+    {
+      "categories": [
+        {
+          "id": "user/-/label/Blog",
+          "label": "Blog",
+        },
+      ],
+      "htmlUrl": "https://example.com/",
+      "iconUrl": "[signed]",
+      "id": "feed/123",
+      "title": "Custom",
+      "url": "https://example.com/feed.xml",
+    },
+  ],
+}
+`;
+
+exports[`Google Reader API > returns ClientLogin, user-info, subscription list, unread-count, and stream shapes > unread-count 1`] = `
+{
+  "max": 1000,
+  "unreadcounts": [
+    {
+      "count": 1,
+      "id": "feed/123",
+      "newestItemTimestampUsec": "1756857600000000",
+    },
+    {
+      "count": 1,
+      "id": "user/-/label/Blog",
+      "newestItemTimestampUsec": "1756857600000000",
+    },
+    {
+      "count": 1,
+      "id": "user/-/state/com.google/reading-list",
+      "newestItemTimestampUsec": "1756857600000000",
+    },
+  ],
+}
+`;

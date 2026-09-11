@@ -1,0 +1,78 @@
+/** `DEMO_FEEDS`が空のときはshikakunが選んだフィードを表示する */
+export const DEFAULT_DEMO_FEEDS = [
+  { url: 'https://www.nasa.gov/news-release/feed/', title: 'NASA', tags: ['Space'] },
+  {
+    url: 'https://feeds.feedburner.com/esahubble/images/potw/',
+    title: 'ESA/Hubble',
+    tags: ['Space'],
+  },
+  {
+    url: 'https://www.esa.int/rssfeed/Our_Activities/Space_News',
+    title: 'ESA',
+    tags: ['Space'],
+  },
+  { url: 'https://feeds.feedburner.com/EsoTopNews', title: 'ESO', tags: ['Space'] },
+  { url: 'https://www.nist.gov/news-events/news/rss.xml', title: 'NIST', tags: ['Science'] },
+  { url: 'https://api.quantamagazine.org/feed/', title: 'Quanta Magazine', tags: ['Science'] },
+  { url: 'https://www.nature.com/nature.rss', title: 'Nature', tags: ['Science'] },
+  { url: 'https://rss.arxiv.org/rss/cs', title: 'arXiv cs', tags: ['Science'] },
+  { url: 'https://blog.chromium.org/feeds/posts/default', title: 'Chromium Blog', tags: ['Web'] },
+  { url: 'https://www.ietf.org/blog/feed/', title: 'IETF Blog', tags: ['Web'] },
+  {
+    url: 'https://blog.unicode.org/feeds/posts/default',
+    title: 'Unicode Blog',
+    tags: ['Web'],
+  },
+  { url: 'https://blog.whatwg.org/feed', title: 'WHATWG', tags: ['Web'] },
+  { url: 'https://letsencrypt.org/feed.xml', title: "Let's Encrypt", tags: ['Web'] },
+  { url: 'https://developer.mozilla.org/en-US/blog/rss.xml', title: 'MDN Blog', tags: ['Web'] },
+  { url: 'https://webkit.org/feed/', title: 'WebKit', tags: ['Web'] },
+  { url: 'https://web.dev/static/blog/feed.xml', title: 'web.dev', tags: ['Web'] },
+  { url: 'https://v8.dev/blog.atom', title: 'V8', tags: ['Tech'] },
+  { url: 'https://github.blog/feed/', title: 'GitHub Blog', tags: ['Tech'] },
+  { url: 'https://hacks.mozilla.org/feed/', title: 'Mozilla Hacks', tags: ['Tech'] },
+  { url: 'https://blog.archive.org/feed/', title: 'Internet Archive', tags: ['Tech'] },
+  { url: 'https://www.nao.ac.jp/atom.xml', title: '国立天文台', tags: ['Space', 'Japan'] },
+  {
+    url: 'https://www.astroarts.co.jp/article/feed.atom',
+    title: 'AstroArts',
+    tags: ['Space', 'Japan'],
+  },
+  {
+    url: 'https://rss.itmedia.co.jp/rss/2.0/news_bursts.xml',
+    title: 'ITmedia NEWS',
+    tags: ['Tech', 'Japan'],
+  },
+  {
+    url: 'https://xtech.nikkei.com/rss/index.rdf',
+    title: '日経クロステック',
+    tags: ['Tech', 'Japan'],
+  },
+  {
+    url: 'https://www.watch.impress.co.jp/data/rss/1.0/ipw/feed.rdf',
+    title: 'Impress Watch',
+    tags: ['Tech', 'Japan'],
+  },
+  {
+    url: 'https://forest.watch.impress.co.jp/data/rss/1.0/wf/feed.rdf',
+    title: '窓の杜',
+    tags: ['Tech', 'Japan'],
+  },
+  { url: 'https://gihyo.jp/feed/atom', title: 'gihyo.jp', tags: ['Tech', 'Japan'] },
+  { url: 'https://www.publickey1.jp/atom.xml', title: 'Publickey', tags: ['Tech', 'Japan'] },
+  {
+    url: 'https://codezine.jp/rss/new/20/index.xml',
+    title: 'CodeZine',
+    tags: ['Tech', 'Japan'],
+  },
+  {
+    url: 'https://b.hatena.ne.jp/hotentry.rss',
+    title: 'はてなブックマーク 人気エントリー',
+    tags: ['Tech', 'Japan'],
+  },
+  {
+    url: 'https://shikakun.com/feed.xml',
+    title: 'shikakun',
+    tags: ['Japan'],
+  },
+]
