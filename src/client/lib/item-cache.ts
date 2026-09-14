@@ -2,6 +2,36 @@ import type { InfiniteData, QueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import type { Bootstrap, ItemDetail, ItemListPage, ItemSummary } from './queries.ts'
 import { queryKeys } from './queries.ts'
+import { itemRefOf } from './refs.ts'
+
+export async function cancelItemQueriesForIds(
+  queryClient: QueryClient,
+  ids: number[],
+): Promise<void> {
+  const idSet = new Set(ids)
+  const refs = new Set<string>()
+  for (const [, data] of queryClient.getQueriesData<InfiniteData<ItemListPage>>({
+    queryKey: ['items'],
+  })) {
+    for (const page of data?.pages ?? []) {
+      for (const item of page.items) {
+        if (idSet.has(item.id)) {
+          refs.add(itemRefOf(item))
+        }
+      }
+    }
+  }
+  await queryClient.cancelQueries({
+    queryKey: ['item'],
+    predicate: (query) => {
+      const item = query.state.data as ItemDetail | undefined
+      const ref = query.queryKey[1]
+      return (
+        (item !== undefined && idSet.has(item.id)) || (typeof ref === 'string' && refs.has(ref))
+      )
+    },
+  })
+}
 
 function patchItems(
   queryClient: QueryClient,
