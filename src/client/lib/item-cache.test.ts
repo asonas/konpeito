@@ -1,6 +1,7 @@
 import { QueryClient } from '@tanstack/react-query'
 import { describe, expect, it } from 'vitest'
 import {
+  cancelItemQueriesForIds,
   collectUnreadDeltas,
   holdStreamItems,
   patchBootstrapUnread,
@@ -63,6 +64,24 @@ function clientWithList(items: ItemSummary[]): QueryClient {
   })
   return client
 }
+
+describe('cancelItemQueriesForIds', () => {
+  it('keeps the next item prefetch running while the current item is updated', async () => {
+    const client = clientWithList([summary(1, false), summary(2, false)])
+    const pending = ({ signal }: { signal: AbortSignal }) =>
+      new Promise<ItemDetail>((_resolve, reject) => {
+        signal.addEventListener('abort', () => reject(signal.reason))
+      })
+    void client.fetchQuery({ queryKey: queryKeys.item('item1'), queryFn: pending }).catch(() => {})
+    void client.fetchQuery({ queryKey: queryKeys.item('item2'), queryFn: pending }).catch(() => {})
+
+    await cancelItemQueriesForIds(client, [1])
+
+    expect(client.getQueryState(queryKeys.item('item1'))?.fetchStatus).toBe('idle')
+    expect(client.getQueryState(queryKeys.item('item2'))?.fetchStatus).toBe('fetching')
+    await client.cancelQueries()
+  })
+})
 
 describe('collectUnreadDeltas', () => {
   it('counts unread going down when items become read', () => {

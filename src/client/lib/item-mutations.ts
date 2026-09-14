@@ -1,5 +1,6 @@
 import { type QueryClient, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
+  cancelItemQueriesForIds,
   collectUnreadDeltas,
   patchBootstrapUnread,
   patchItemsBookmarked,
@@ -15,9 +16,9 @@ import {
 
 type Snapshot = ReturnType<QueryClient['getQueriesData']>
 
-async function snapshot(queryClient: QueryClient): Promise<Snapshot> {
+async function snapshot(queryClient: QueryClient, ids: number[]): Promise<Snapshot> {
   await queryClient.cancelQueries({ queryKey: ['items'] })
-  await queryClient.cancelQueries({ queryKey: ['item'] })
+  await cancelItemQueriesForIds(queryClient, ids)
   return [
     ...queryClient.getQueriesData({ queryKey: ['items'] }),
     ...queryClient.getQueriesData({ queryKey: ['item'] }),
@@ -59,7 +60,7 @@ export function useItemMutations(): ItemMutations {
   const read = useMutation({
     mutationFn: ({ ids, read }: { ids: number[]; read: boolean }) => setItemsRead(ids, read),
     onMutate: async ({ ids, read }) => {
-      const saved = await snapshot(queryClient)
+      const saved = await snapshot(queryClient, ids)
       const deltas = collectUnreadDeltas(queryClient, ids, read)
       patchItemsRead(queryClient, ids, read)
       if (deltas !== null) {
@@ -80,7 +81,7 @@ export function useItemMutations(): ItemMutations {
     mutationFn: ({ ids, bookmarked }: { ids: number[]; bookmarked: boolean }) =>
       setItemsBookmarked(ids, bookmarked),
     onMutate: async ({ ids, bookmarked }) => {
-      const saved = await snapshot(queryClient)
+      const saved = await snapshot(queryClient, ids)
       patchItemsBookmarked(queryClient, ids, bookmarked)
       return saved
     },
@@ -91,7 +92,7 @@ export function useItemMutations(): ItemMutations {
   const markAll = useMutation({
     mutationFn: ({ body }: { body: MarkAllReadBody; visibleIds: number[] }) => markStreamRead(body),
     onMutate: async ({ visibleIds }) => {
-      const saved = await snapshot(queryClient)
+      const saved = await snapshot(queryClient, visibleIds)
       patchItemsRead(queryClient, visibleIds, true)
       return saved
     },
