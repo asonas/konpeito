@@ -2,16 +2,17 @@ import { describe, expect, it } from 'vitest'
 import { backoffSec, nextIntervalSec, queueRetryDelaySec } from './scheduler.ts'
 
 describe('nextIntervalSec', () => {
-  it('rounds fractional intervals up to whole seconds', () => {
+  it('rounds the first fractional weekly interval up to whole seconds', () => {
     expect(
       nextIntervalSec({
-        weeklyItemCount: 67,
+        // Counts below 11 produce whole seconds or hit the 24-hour cap.
+        weeklyItemCount: 11,
         ttlSec: null,
         cacheControlMaxAgeSec: null,
         expiresInSec: null,
         retryAfterSec: null,
       }),
-    ).toBe(9027)
+    ).toBe(54982)
   })
   it('uses 24h when weekly count is 0', () => {
     expect(

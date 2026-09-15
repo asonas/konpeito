@@ -41,12 +41,13 @@ async function insertFeed(url: string): Promise<number> {
 }
 
 describe('ingest', () => {
-  it.each([3600, 9026.865671641792])(
+  it.each([3600, 54981.818181818184])(
     'keeps fetching after loading interval %s',
     async (interval) => {
       const now = 1_756_857_600
+      // Eleven weekly articles is the smallest count that produces fractional seconds.
       const items = Array.from(
-        { length: 67 },
+        { length: 11 },
         (_, i) =>
           `<item><title>Article ${i}</title><guid>article-${i}</guid><pubDate>${new Date(now * 1000).toUTCString()}</pubDate><description>Body</description></item>`,
       ).join('')
@@ -59,15 +60,15 @@ describe('ingest', () => {
             .bind(interval, feedId)
             .run()
           const first = await ingestFeed(env, feedId, { force: false, now })
-          expect(first.inserted).toBe(67)
-          const second = await ingestFeed(env, feedId, { force: false, now: now + 9027 })
+          expect(first.inserted).toBe(11)
+          const second = await ingestFeed(env, feedId, { force: false, now: now + 54982 })
           expect(second.outcome).toBe('unchanged')
           const row = await env.DB.prepare(
             'SELECT fetch_interval_sec, last_fetch_at FROM feeds WHERE id = ?',
           )
             .bind(feedId)
             .first()
-          expect(row).toEqual({ fetch_interval_sec: 9027, last_fetch_at: now + 9027 })
+          expect(row).toEqual({ fetch_interval_sec: 54982, last_fetch_at: now + 54982 })
         },
       )
     },
