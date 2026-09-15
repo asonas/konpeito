@@ -1,5 +1,11 @@
 # @shikakun/konpeito
 
+## 0.2.0
+
+### Minor Changes
+
+- [#6](https://github.com/shikakun/konpeito/pull/6) [`51602e1`](https://github.com/shikakun/konpeito/commit/51602e1d6b070290c8158221af4bf5da7941be10) Thanks [@shikakun](https://github.com/shikakun)! - トップページに「すべての記事」か「未読の記事」を表示するか選べるようにした
+
 ## 0.1.2
 
 ### Patch Changes
