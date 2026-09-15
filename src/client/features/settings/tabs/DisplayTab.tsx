@@ -20,6 +20,7 @@ export function DisplayTab(props: { settings: Settings; readOnly: boolean }) {
   const [sort, setSort] = useState(props.settings.default_sort)
   const [autoRead, setAutoRead] = useState(props.settings.auto_mark_read)
   const [unreadOnly, setUnreadOnly] = useState(props.settings.unread_only_feeds)
+  const [homeUnread, setHomeUnread] = useState(props.settings.home_unread)
   const [initialUnread, setInitialUnread] = useState(String(props.settings.initial_unread_count))
   const unreadTimer = useRef<number>(0)
 
@@ -28,6 +29,7 @@ export function DisplayTab(props: { settings: Settings; readOnly: boolean }) {
     setSort(props.settings.default_sort)
     setAutoRead(props.settings.auto_mark_read)
     setUnreadOnly(props.settings.unread_only_feeds)
+    setHomeUnread(props.settings.home_unread)
     setInitialUnread(String(props.settings.initial_unread_count))
   }, [props.settings])
 
@@ -188,6 +190,17 @@ export function DisplayTab(props: { settings: Settings; readOnly: boolean }) {
           }}
         >
           {t.settings.display.unreadOnlyFeeds}
+        </CheckboxField>
+        <CheckboxField
+          checked={homeUnread}
+          disabled={props.readOnly}
+          onCheckedChange={(checked) => {
+            const previous = homeUnread
+            setHomeUnread(checked)
+            void persist({ home_unread: checked }, () => setHomeUnread(previous))
+          }}
+        >
+          {t.settings.display.homeUnread}
         </CheckboxField>
       </SettingsChecks>
     </SettingsPanel>

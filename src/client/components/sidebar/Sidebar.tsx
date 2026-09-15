@@ -116,6 +116,7 @@ export function Sidebar(props: {
   source: Source
   search: ReaderSearch
   unreadOnly: boolean
+  homeUnread: boolean
   searchOpen: boolean
   searchQuery: string
   onSearchOpen: () => void
@@ -194,7 +195,7 @@ export function Sidebar(props: {
     const active = options?.current ?? sameSource(props.source, source)
     return (
       <Link
-        {...sourceLink(source, search)}
+        {...sourceLink(source, search, props.homeUnread)}
         activeOptions={{ exact: true, includeSearch: true }}
         data-source-current={active ? 'true' : undefined}
         className={cn(rowClassName, active && 'bg-state-pressed hover:bg-state-pressed')}

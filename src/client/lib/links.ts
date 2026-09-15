@@ -3,6 +3,7 @@ import { isPathFilter, type Source } from './search-params.ts'
 
 export type ReaderHref =
   | { to: '/'; search: ReaderSearch }
+  | { to: '/items'; search: ReaderSearch }
   | { to: '/unread'; search: ReaderSearch }
   | { to: '/bookmarks'; search: ReaderSearch }
   | { to: '/feeds/$feedId'; params: { feedId: string }; search: ReaderSearch }
@@ -37,7 +38,12 @@ function withSourceQ(source: Source, search: ReaderSearch): ReaderSearch {
   return next
 }
 
-export function sourceLink(source: Source, search: ReaderSearch): ReaderHref {
+/**
+ * homeUnreadはトップページを未読の記事にする設定
+ * オンのとき、すべての記事のリンク先は/ではなく/itemsになる
+ * どちらの設定でも/と/itemsの両方で開けるが、リンクは設定に沿ったURLを指す
+ */
+export function sourceLink(source: Source, search: ReaderSearch, homeUnread = false): ReaderHref {
   const next = withSourceQ(source, search)
   if (source.kind === 'feed') {
     return { to: '/feeds/$feedId', params: { feedId: source.publicId }, search: next }
@@ -53,6 +59,9 @@ export function sourceLink(source: Source, search: ReaderSearch): ReaderHref {
   }
   if (source.kind === 'bookmarks') {
     return { to: '/bookmarks', search: next }
+  }
+  if (homeUnread) {
+    return { to: '/items', search: next }
   }
   return { to: '/', search: next }
 }

@@ -130,6 +130,7 @@ export function ItemList(props: {
       { ...props.search, order: props.order === 'desc' ? 'asc' : 'desc' },
       props.defaultOrder,
     ),
+    props.settings.home_unread,
   )
 
   return (

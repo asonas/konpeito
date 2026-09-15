@@ -241,6 +241,7 @@ export const en = {
       initialUnread: 'Articles to fetch when adding a feed',
       autoMarkRead: 'Mark articles as read when opened',
       unreadOnlyFeeds: 'Show only feeds with unread articles',
+      homeUnread: 'Use Unread articles as the home page',
     },
     data: {
       title: 'Data',

@@ -106,6 +106,7 @@ export const settingsSchema: z.ZodType<Settings> = z.object({
   default_sort: sortOrderSchema,
   auto_mark_read: z.boolean(),
   unread_only_feeds: z.boolean(),
+  home_unread: z.boolean(),
   initial_unread_count: z.number().int().min(0).max(200),
 })
 
@@ -116,6 +117,7 @@ export const settingsPatchSchema: z.ZodType<SettingsPatch> = z
     default_sort: sortOrderSchema,
     auto_mark_read: z.boolean(),
     unread_only_feeds: z.boolean(),
+    home_unread: z.boolean(),
     initial_unread_count: z.number().int().min(0).max(200),
   })
   .partial()

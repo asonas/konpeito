@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { itemLink } from './links.ts'
+import { itemLink, sourceLink } from './links.ts'
 
 describe('itemLink', () => {
   it('drops the filter that the path already says, and keeps the sort order', () => {
@@ -36,5 +36,26 @@ describe('itemLink', () => {
       params: { feedId: 'feedaaaa', itemId: 'itemaaaaaa' },
       search: {},
     })
+  })
+})
+
+describe('sourceLink', () => {
+  it('points all articles at / by default', () => {
+    expect(sourceLink({ kind: 'all' }, { order: 'asc' })).toEqual({
+      to: '/',
+      search: { order: 'asc' },
+    })
+  })
+
+  it('points all articles at /items when the home page shows unread', () => {
+    expect(sourceLink({ kind: 'all' }, { order: 'asc' }, true)).toEqual({
+      to: '/items',
+      search: { order: 'asc' },
+    })
+  })
+
+  it('keeps unread at /unread whichever page is the home page', () => {
+    expect(sourceLink({ kind: 'unread' }, {}, true)).toEqual({ to: '/unread', search: {} })
+    expect(sourceLink({ kind: 'unread' }, {}, false)).toEqual({ to: '/unread', search: {} })
   })
 })

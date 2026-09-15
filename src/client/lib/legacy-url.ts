@@ -16,6 +16,7 @@ interface LegacyUrlInput {
   feeds: Feed[]
   tags: Tag[]
   itemPublicId: string | undefined
+  homeUnread?: boolean
 }
 
 type LegacyUrlResult =
@@ -23,10 +24,15 @@ type LegacyUrlResult =
   | { kind: 'waiting' }
   | { kind: 'redirect'; href: ReaderHref }
 
-function hrefFor(source: Source, itemRef: string | undefined, search: ReaderSearch): ReaderHref {
+function hrefFor(
+  source: Source,
+  itemRef: string | undefined,
+  search: ReaderSearch,
+  homeUnread: boolean,
+): ReaderHref {
   const next = withoutPathFilter(search)
   if (itemRef === undefined) {
-    return sourceLink(source, next)
+    return sourceLink(source, next, homeUnread)
   }
   return itemLink(source, itemRef, next)
 }
@@ -58,16 +64,20 @@ export function legacyUrlRedirect(input: LegacyUrlInput): LegacyUrlResult {
     source = sourceFromFilterQuery(input)
   }
 
+  const homeUnread = input.homeUnread === true
   if (input.itemRef === undefined) {
-    return { kind: 'redirect', href: hrefFor(source, undefined, input.search) }
+    return { kind: 'redirect', href: hrefFor(source, undefined, input.search, homeUnread) }
   }
   if (!itemNumeric) {
-    return { kind: 'redirect', href: hrefFor(source, input.itemRef, input.search) }
+    return { kind: 'redirect', href: hrefFor(source, input.itemRef, input.search, homeUnread) }
   }
   if (input.itemPublicId === undefined) {
     return { kind: 'waiting' }
   }
-  return { kind: 'redirect', href: hrefFor(source, input.itemPublicId, input.search) }
+  return {
+    kind: 'redirect',
+    href: hrefFor(source, input.itemPublicId, input.search, homeUnread),
+  }
 }
 
 function sourceFromFilterQuery(input: LegacyUrlInput): Source {
@@ -102,5 +112,8 @@ export function queryFilterRedirect(input: LegacyUrlInput): LegacyUrlResult {
   if (source.kind === 'missing') {
     return { kind: 'none' }
   }
-  return { kind: 'redirect', href: hrefFor(source, input.itemRef, input.search) }
+  return {
+    kind: 'redirect',
+    href: hrefFor(source, input.itemRef, input.search, input.homeUnread === true),
+  }
 }

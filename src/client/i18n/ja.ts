@@ -238,6 +238,7 @@ export const ja: Messages = {
       initialUnread: 'フィード追加時の取得件数',
       autoMarkRead: '記事を開いたら既読にする',
       unreadOnlyFeeds: '未読の記事があるフィードだけ表示する',
+      homeUnread: 'トップページを「未読の記事」にする',
     },
     data: {
       title: 'データ',

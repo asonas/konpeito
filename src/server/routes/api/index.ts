@@ -495,6 +495,7 @@ export const api = new Hono<AppEnv>()
       'default_sort',
       'auto_mark_read',
       'unread_only_feeds',
+      'home_unread',
       'initial_unread_count',
     ]
     for (const key of keys) {
