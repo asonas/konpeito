@@ -239,7 +239,7 @@ export function ReaderApp(props: {
   }
 
   function closeItem() {
-    go(sourceLink(props.source, search))
+    go(sourceLink(props.source, search, settings.home_unread))
   }
 
   async function markVisibleRead() {
@@ -325,7 +325,7 @@ export function ReaderApp(props: {
     },
     goUnread: () => go(sourceLink({ kind: 'unread' }, plainSearch)),
     goBookmarks: () => go(sourceLink({ kind: 'bookmarks' }, plainSearch)),
-    goAll: () => go(sourceLink({ kind: 'all' }, plainSearch)),
+    goAll: () => go(sourceLink({ kind: 'all' }, plainSearch, settings.home_unread)),
     focusPrevColumn: () => focusColumn(-1),
     focusNextColumn: () => focusColumn(1),
     openShortcuts: () => setDialog({ kind: 'shortcuts' }),
@@ -388,7 +388,7 @@ export function ReaderApp(props: {
             failed={t.tagDialog.deleteFailed}
             onDone={() => {
               if (props.source.kind === 'tag' && props.source.tagId === dialog.tag.id) {
-                go(sourceLink({ kind: 'all' }, search))
+                go(sourceLink({ kind: 'all' }, search, settings.home_unread))
               }
             }}
           />
@@ -417,7 +417,7 @@ export function ReaderApp(props: {
             failed={t.feedDialog.unsubscribeFailed}
             onDone={() => {
               if (props.source.kind === 'feed' && props.source.feedId === dialog.feed.id) {
-                go(sourceLink({ kind: 'all' }, search))
+                go(sourceLink({ kind: 'all' }, search, settings.home_unread))
               }
             }}
           />
@@ -444,6 +444,7 @@ export function ReaderApp(props: {
               tags={props.bootstrap.tags}
               unreadCount={props.bootstrap.unread_count}
               unreadOnly={settings.unread_only_feeds}
+              homeUnread={settings.home_unread}
               source={props.source}
               search={search}
               searchOpen={searchOpen}
@@ -528,7 +529,7 @@ export function ReaderApp(props: {
             missing={props.source.kind === 'missing'}
             feeds={props.bootstrap.feeds}
             {...(shell.layout === 'one' && props.itemRef !== undefined
-              ? { backLink: sourceLink(props.source, search) }
+              ? { backLink: sourceLink(props.source, search, settings.home_unread) }
               : {})}
             articleRef={articleRef}
             onToggleRead={toggleRead}

@@ -70,7 +70,10 @@ function ReaderFromRoute() {
   const { feedId: feedRef, tagId: tagRef, itemId: itemRef } = params
   const onSettings = isSettingsPath(pathname)
   const onSearch = pathname === '/search' || pathname.startsWith('/search/')
-  const onUnread = pathname === '/unread' || pathname.startsWith('/unread/')
+  const homeUnread = bootstrap.settings.home_unread
+  /** トップページを未読の記事にしている場合、/は/unreadと同じ内容を表示する */
+  const onUnread =
+    pathname === '/unread' || pathname.startsWith('/unread/') || (pathname === '/' && homeUnread)
   const onBookmarks = pathname === '/bookmarks' || pathname.startsWith('/bookmarks/')
 
   const legacyItem = itemRef !== undefined && isNumericRef(itemRef)
@@ -95,6 +98,7 @@ function ReaderFromRoute() {
       feeds: bootstrap.feeds,
       tags: bootstrap.tags,
       itemPublicId,
+      homeUnread,
     }
     const legacy = legacyUrlRedirect(input)
     if (legacy.kind === 'waiting') {
@@ -108,6 +112,7 @@ function ReaderFromRoute() {
     bootstrap.feeds,
     bootstrap.tags,
     feedRef,
+    homeUnread,
     itemPublicId,
     itemRef,
     navigate,

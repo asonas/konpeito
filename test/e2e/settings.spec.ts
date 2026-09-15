@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { makeItems, mockItemApis, registerPasskey } from './helpers.ts'
+import { at, makeItems, mockItemApis, registerPasskey } from './helpers.ts'
 
 test.describe('settings', () => {
   test('settings opens as a modal, applies display changes, and renders every tab', async ({
@@ -48,5 +48,33 @@ test.describe('settings', () => {
     await expect(page.getByRole('dialog', { name: '設定' })).toBeVisible()
     await expect(page.locator('html')).toHaveAttribute('lang', 'ja')
     await expect(page.getByRole('combobox', { name: '言語' })).toContainText('日本語')
+  })
+
+  test('the home page shows unread articles once the display setting is on', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 })
+    const items = makeItems(3)
+    at(items, 0).is_read = true
+    await mockItemApis(page, items)
+    await registerPasskey(page)
+    await page.getByRole('link', { name: 'Settings' }).click()
+    const dialog = page.getByRole('dialog', { name: 'Settings' })
+    await dialog.getByRole('checkbox', { name: 'Use Unread articles as the home page' }).click()
+    await dialog.getByRole('button', { name: 'Close' }).click()
+
+    await page.goto('/')
+    await expect(page).toHaveURL((url) => url.pathname === '/')
+    await expect(page.getByRole('heading', { name: 'Unread', level: 1 })).toBeVisible()
+    const nav = page.getByRole('navigation', { name: 'Feeds' })
+    await expect(nav.getByRole('link', { name: /^Unread/ })).toHaveAttribute('aria-current', 'page')
+
+    await nav.getByRole('link', { name: 'All articles' }).click()
+    await expect(page).toHaveURL((url) => url.pathname === '/items')
+    await expect(page.getByRole('heading', { name: 'All articles', level: 1 })).toBeVisible()
+    const list = page.getByRole('feed', { name: 'Articles' })
+    await expect(list.getByRole('article', { name: '記事 1' })).toBeVisible()
+
+    await page.goto('/unread')
+    await expect(page.getByRole('heading', { name: 'Unread', level: 1 })).toBeVisible()
+    await expect(list.getByRole('article', { name: '記事 1' })).toHaveCount(0)
   })
 })

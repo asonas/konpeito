@@ -33,6 +33,7 @@ export type Settings = {
   default_sort: SortOrder
   auto_mark_read: boolean
   unread_only_feeds: boolean
+  home_unread: boolean
   initial_unread_count: number
 }
 
@@ -47,5 +48,6 @@ export const DEFAULT_SETTINGS: Omit<Settings, 'user_handle'> = {
   default_sort: 'desc',
   auto_mark_read: true,
   unread_only_feeds: false,
+  home_unread: false,
   initial_unread_count: 100,
 }
