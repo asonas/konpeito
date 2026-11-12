@@ -446,4 +446,34 @@ describe('runPreferenceLearning holdout', () => {
     ).first<{ body: string }>()
     expect(active?.body).toBe('NEW')
   })
+
+  // 直近の好きな記事だけで先頭80件が埋まり、ラベルは上限の150件ちょうどになる
+  it('shows OpenAI both classes even when recent feedback is one-sided', async () => {
+    await seedLabeledItems()
+    await env.DB.prepare("UPDATE item_events SET created_at = ? WHERE kind = 'dislike'")
+      .bind(NOW - 7200)
+      .run()
+    for (let id = 61; id <= 150; id += 1) {
+      await seedItem(id, { read: true })
+      await env.DB.prepare(
+        "INSERT INTO item_events (item_id, kind, created_at) VALUES (?, 'like', ?)",
+      )
+        .bind(id, NOW - 1800)
+        .run()
+    }
+    const apis = fakeApis('NEW', () => 0.5)
+    const reactions: string[] = []
+    await withFetch(
+      async (input, init) => {
+        if (String(input).startsWith('https://api.openai.com/')) {
+          const body = JSON.parse(String(init?.body)) as { input: string }
+          const { examples } = JSON.parse(body.input) as { examples: { reaction: string }[] }
+          reactions.push(...examples.map((example) => example.reaction))
+        }
+        return apis(input, init)
+      },
+      () => runPreferenceLearning({ ...env, ...keys }, NOW),
+    )
+    expect(reactions.filter((reaction) => reaction === 'disliked').length).toBeGreaterThanOrEqual(5)
+  })
 })

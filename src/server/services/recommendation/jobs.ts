@@ -144,10 +144,10 @@ export async function runPreferenceLearning(env: Env, now: number): Promise<void
   const fresh = labels.filter((label) => label.at > lastRun).length
   const evalLabels = labels.filter((label) => isHoldout(label.itemId))
   const trainLabels = labels.filter((label) => !isHoldout(label.itemId))
-  const trainPositives = trainLabels.filter((label) => label.positive).length
-  // 候補を作る例にも、好きと好きでないの両方が要る
-  const hasExamples =
-    trainPositives >= MIN_PER_CLASS && trainLabels.length - trainPositives >= MIN_PER_CLASS
+  // 候補を作る例にも好きと好きでないの両方が要るので、新しい順に各クラスから半数ずつ選ぶ
+  const liked = trainLabels.filter((label) => label.positive).slice(0, MAX_EXAMPLES / 2)
+  const disliked = trainLabels.filter((label) => !label.positive).slice(0, MAX_EXAMPLES / 2)
+  const hasExamples = liked.length >= MIN_PER_CLASS && disliked.length >= MIN_PER_CLASS
   if (fresh < MIN_NEW_LABELS || !hasEnoughLabels(evalLabels) || !hasExamples) {
     console.log({
       event: 'recommendation.learn.skip',
@@ -158,10 +158,12 @@ export async function runPreferenceLearning(env: Env, now: number): Promise<void
     return
   }
 
-  const examples = trainLabels.slice(0, MAX_EXAMPLES).flatMap((label) => {
-    const item = items.get(label.itemId)
-    return item === undefined ? [] : [toExample(label, item)]
-  })
+  const examples = [...liked, ...disliked]
+    .sort((a, b) => b.at - a.at)
+    .flatMap((label) => {
+      const item = items.get(label.itemId)
+      return item === undefined ? [] : [toExample(label, item)]
+    })
   const proposal = await proposePreference(active.body, examples, openai)
   if (proposal.kind !== 'ok') {
     console.log({ event: 'recommendation.learn.propose_failed', failure: proposal })
