@@ -133,15 +133,17 @@ describe('recommendation API', () => {
     ['GET', '/recommendations', undefined],
     ['POST', '/items/1/events', JSON.stringify({ kind: 'like' })],
     ['GET', '/items/1/feedback', undefined],
+    ['GET', '/recommendation/status', undefined],
+    ['PUT', '/recommendation/preference', JSON.stringify({ body: 'x' })],
   ])('rejects %s %s without a session', async (method, path, body) => {
     await seedFeed()
     await seedItem(1)
     const res = await api(path, { method, ...(body !== undefined ? { body } : {}) })
     expect(res.status).toBe(401)
-    const events = await env.DB.prepare('SELECT COUNT(*) AS n FROM item_events').first<{
-      n: number
-    }>()
-    expect(events?.n).toBe(0)
+    const written = await env.DB.prepare(
+      'SELECT (SELECT COUNT(*) FROM item_events) + (SELECT COUNT(*) FROM preference_versions) AS n',
+    ).first<{ n: number }>()
+    expect(written?.n).toBe(0)
   })
 
   it('ranks unread items by score, mixes in exploration and records each impression once', async () => {
@@ -298,5 +300,24 @@ describe('runPreferenceLearning', () => {
       () => runPreferenceLearning({ ...env, ...keys }, NOW),
     )
     expect(calls).toBe(0)
+  })
+})
+
+describe('PUT /recommendation/preference', () => {
+  it('replaces the active version and keeps the previous one as its parent', async () => {
+    await seedActiveVersion(1, 'OLD')
+    const res = await api('/recommendation/preference', {
+      method: 'PUT',
+      cookie: await sessionCookie(),
+      body: JSON.stringify({ body: '  Ruby and keyboards  ' }),
+    })
+    expect(res.status).toBe(200)
+    const versions = await env.DB.prepare(
+      'SELECT body, source, status, parent_id FROM preference_versions ORDER BY id',
+    ).all()
+    expect(versions.results).toEqual([
+      { body: 'OLD', source: 'manual', status: 'retired', parent_id: null },
+      { body: 'Ruby and keyboards', source: 'manual', status: 'active', parent_id: 1 },
+    ])
   })
 })

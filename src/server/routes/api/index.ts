@@ -16,6 +16,7 @@ import {
   markAllReadSchema,
   patchFeedSchema,
   patchTagSchema,
+  preferenceSchema,
   readSchema,
   recommendationsQuerySchema,
   reorderIdsSchema,
@@ -64,11 +65,14 @@ import {
   type SessionRow,
 } from '../../middleware/session.ts'
 import type { OpmlFeed } from '../../services/opml.ts'
+import { loadLabels } from '../../services/recommendation/jobs.ts'
 import {
+  createManualVersion,
   getActiveVersion,
   getFeedback,
   insertItemEvent,
   listRecommendations,
+  listVersions,
   type RecommendedItem,
   recordImpressionsStatements,
 } from '../../services/recommendation/store.ts'
@@ -204,6 +208,25 @@ export const api = new Hono<AppEnv>()
       await c.env.DB.batch(recordImpressionsStatements(c.env.DB, active.id, items, nowSec()))
     }
     return c.json({ items, version: active.id })
+  })
+  .get('/recommendation/status', async (c) => {
+    const [versions, labels] = await Promise.all([
+      listVersions(c.env.DB, 20),
+      loadLabels(c.env.DB, nowSec()),
+    ])
+    const positives = labels.filter((label) => label.positive).length
+    return c.json({
+      configured: { jev: Boolean(c.env.JEV_API_KEY), openai: Boolean(c.env.OPENAI_API_KEY) },
+      versions: versions.map((version) => ({
+        ...version,
+        eval: version.eval_json === null ? null : (JSON.parse(version.eval_json) as unknown),
+      })),
+      labels: { total: labels.length, positive: positives, negative: labels.length - positives },
+    })
+  })
+  .put('/recommendation/preference', zv('json', preferenceSchema), async (c) => {
+    const id = await createManualVersion(c.env.DB, c.req.valid('json').body, nowSec())
+    return c.json({ id })
   })
   .post('/items/:id/events', withRowId('items'), zv('json', itemEventSchema), async (c) => {
     const body = c.req.valid('json')
