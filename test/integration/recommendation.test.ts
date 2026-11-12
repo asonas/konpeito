@@ -266,6 +266,11 @@ describe('runPreferenceLearning', () => {
       { body: 'OLD', status: 'retired', parent_id: null },
       { body: 'NEW', status: 'active', parent_id: 1 },
     ])
+    // 評価で採点した記事は、公開から日が経っていても採用後のおすすめに出せる
+    const scored = await env.DB.prepare(
+      "SELECT COUNT(*) AS n FROM item_scores WHERE version_id = (SELECT id FROM preference_versions WHERE status = 'active')",
+    ).first<{ n: number }>()
+    expect(scored?.n).toBe(30)
   })
 
   it('keeps the active version when the candidate does worse', async () => {

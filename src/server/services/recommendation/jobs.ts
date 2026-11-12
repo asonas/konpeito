@@ -229,7 +229,11 @@ async function evaluateCandidate(
     model: { jev: jev.model, openai: input.openaiModel },
   }
   if (adopted) {
-    await env.DB.batch(activateStatements(env.DB, candidate.id, active.id, evaluation, now))
+    // 通常の採点は直近の記事だけなので、評価で採点した古い記事も採用後のおすすめに残るようスコアを保存する
+    await env.DB.batch([
+      ...saveScoresStatements(env.DB, candidate.id, candidateRun.scores, now),
+      ...activateStatements(env.DB, candidate.id, active.id, evaluation, now),
+    ])
   } else {
     await rejectStatement(env.DB, candidate.id, JSON.stringify(evaluation)).run()
   }
