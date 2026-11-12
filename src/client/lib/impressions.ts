@@ -13,6 +13,14 @@ export function useImpressionTracker(
   const idsByNode = useRef(new WeakMap<Element, number>())
   const sent = useRef(new Set<number>())
 
+  // 一覧は別のビューへ移っても同じ行の要素を使い回すので、無効になった時点で観察をやめる
+  useEffect(() => {
+    if (enabled) {
+      return
+    }
+    observer.current?.disconnect()
+    observer.current = null
+  }, [enabled])
   useEffect(() => {
     return () => {
       observer.current?.disconnect()
