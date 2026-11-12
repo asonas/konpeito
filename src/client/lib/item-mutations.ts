@@ -50,6 +50,8 @@ function restore(queryClient: QueryClient, saved: Snapshot | undefined): void {
 
 interface ItemMutations {
   setRead: (ids: number[], read: boolean) => void
+  /** 完了を待てる`setRead`。失敗すると楽観的な更新を戻してから例外を投げる */
+  setReadAsync: (ids: number[], read: boolean) => Promise<void>
   setBookmarked: (ids: number[], bookmarked: boolean) => void
   markAllRead: (body: MarkAllReadBody, visibleIds: number[]) => Promise<void>
 }
@@ -105,6 +107,7 @@ export function useItemMutations(): ItemMutations {
 
   return {
     setRead: (ids, isRead) => read.mutate({ ids, read: isRead }),
+    setReadAsync: (ids, isRead) => read.mutateAsync({ ids, read: isRead }).then(() => {}),
     setBookmarked: (ids, bookmarked) => bookmark.mutate({ ids, bookmarked }),
     markAllRead: (body, visibleIds) => markAll.mutateAsync({ body, visibleIds }).then(() => {}),
   }

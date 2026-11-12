@@ -45,7 +45,7 @@ export function RecommendationTab() {
     queryFn: fetchRecommendationStatus,
   })
   const status = query.data
-  const active = status?.versions.find((version) => version.status === 'active')
+  const active = status?.active ?? null
   const [draft, setDraft] = useState<string | null>(null)
   const value = draft ?? active?.body ?? ''
   const save = useMutation({
@@ -53,7 +53,10 @@ export function RecommendationTab() {
     onSuccess: async () => {
       setDraft(null)
       notify(t.settings.recommendation.saved)
-      await queryClient.invalidateQueries({ queryKey: queryKeys.recommendationStatus })
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.recommendationStatus }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.recommendations }),
+      ])
     },
   })
 

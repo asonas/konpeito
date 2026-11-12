@@ -46,7 +46,9 @@ export function useStreamItems(
   })
 
   const fetched = query.data?.pages.flatMap((page) => page.items) ?? []
-  const items = useHeldStreamItems(streamKey, fetched)
+  // 嗜好の版が変わると順位もスコアも作り直しになるので、前の版の一覧を引き継がない
+  const heldKey = recommended ? `${streamKey}:${query.data?.pages[0]?.version ?? ''}` : streamKey
+  const items = useHeldStreamItems(heldKey, fetched)
 
   const previousKey = useRef(streamKey)
   useEffect(() => {

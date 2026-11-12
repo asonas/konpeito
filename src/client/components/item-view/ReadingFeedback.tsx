@@ -19,8 +19,9 @@ function send(id: number, kind: ItemEventKind, dwellMs?: number): void {
 }
 
 /**
- * 記事を開いた事と、閉じるまでの閲覧時間を記録する
- * タブが隠れている間は閲覧時間に数えない
+ * 記事を開いた事と、表示していた時間を記録する
+ * 閲覧時間は、タブが隠れる・ページを離れる・記事を閉じるたびに区切って送り、サーバー側で合計する
+ * 隠れたままブラウザーが終了されると`pagehide`が来ないので、隠れた時点で送っておく
  */
 export function useReadingSession(itemId: number | undefined, enabled: boolean): void {
   useEffect(() => {
@@ -28,36 +29,41 @@ export function useReadingSession(itemId: number | undefined, enabled: boolean):
       return
     }
     send(itemId, 'open')
-    let visibleMs = 0
     let visibleSince: number | null = document.visibilityState === 'visible' ? Date.now() : null
-    let closed = false
-    const pause = () => {
-      if (visibleSince !== null) {
-        visibleMs += Date.now() - visibleSince
-        visibleSince = null
-      }
-    }
-    const close = () => {
-      if (closed) {
+    const flush = () => {
+      if (visibleSince === null) {
         return
       }
-      closed = true
-      pause()
-      send(itemId, 'close', visibleMs)
+      const elapsed = Date.now() - visibleSince
+      visibleSince = null
+      send(itemId, 'close', elapsed)
+    }
+    const resume = () => {
+      if (document.visibilityState === 'visible') {
+        visibleSince ??= Date.now()
+      }
     }
     const onVisibility = () => {
       if (document.visibilityState === 'visible') {
-        visibleSince ??= Date.now()
+        resume()
       } else {
-        pause()
+        flush()
+      }
+    }
+    // BFCacheから戻ったページでは、同じ記事の新しい区間として測り直す
+    const onPageShow = (event: PageTransitionEvent) => {
+      if (event.persisted) {
+        resume()
       }
     }
     document.addEventListener('visibilitychange', onVisibility)
-    window.addEventListener('pagehide', close)
+    window.addEventListener('pagehide', flush)
+    window.addEventListener('pageshow', onPageShow)
     return () => {
       document.removeEventListener('visibilitychange', onVisibility)
-      window.removeEventListener('pagehide', close)
-      close()
+      window.removeEventListener('pagehide', flush)
+      window.removeEventListener('pageshow', onPageShow)
+      flush()
     }
   }, [enabled, itemId])
 }
@@ -70,7 +76,9 @@ export function FeedbackButtons(props: { itemId: number }) {
   const current = query.data ?? null
   const mutation = useMutation({
     mutationFn: (kind: ItemEventKind) => postItemEvent(props.itemId, kind),
-    onMutate: (kind) => {
+    onMutate: async (kind) => {
+      // 取得中の古い値が、後から楽観的な更新を上書きしないようにする
+      await queryClient.cancelQueries({ queryKey })
       const previous = queryClient.getQueryData<Feedback>(queryKey)
       queryClient.setQueryData<Feedback>(
         queryKey,
@@ -81,6 +89,7 @@ export function FeedbackButtons(props: { itemId: number }) {
     onError: (_error, _kind, context) => {
       queryClient.setQueryData<Feedback>(queryKey, context?.previous ?? null)
     },
+    onSettled: () => queryClient.invalidateQueries({ queryKey }),
   })
   const toggle = (kind: 'like' | 'dislike') => {
     mutation.mutate(current === kind ? 'clear_feedback' : kind)

@@ -25,7 +25,8 @@ export type Settings = Bootstrap['settings']
 type ItemsOk = InferResponseType<typeof api.items.$get, 200>
 /** おすすめのビューでは、有効な嗜好の版での採点結果が付く */
 export type ItemSummary = ItemsOk['items'][number] & { score?: number }
-export type ItemListPage = { items: ItemSummary[]; next_cursor?: string }
+/** `version`はおすすめの一覧だけが持つ。採点に使った嗜好の版 */
+export type ItemListPage = { items: ItemSummary[]; next_cursor?: string; version?: number | null }
 export type ItemDetail = InferResponseType<(typeof api.items)[':id']['$get'], 200>
 
 type DiscoverOk = InferResponseType<typeof api.feeds.discover.$post, 200>
@@ -336,7 +337,7 @@ export type ItemEventKind = 'open' | 'close' | 'like' | 'dislike' | 'clear_feedb
 export async function fetchRecommendationsPage(): Promise<ItemListPage> {
   return okJsonWith(
     await api.recommendations.$get({ query: { limit: '50' } }),
-    (data: RecommendationsOk) => ({ items: data.items }),
+    (data: RecommendationsOk) => ({ items: data.items, version: data.version }),
   )
 }
 

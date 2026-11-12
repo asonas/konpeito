@@ -247,7 +247,7 @@ export function ReaderApp(props: {
     if (props.source.kind === 'recommended') {
       const ids = items.filter((item) => !item.is_read).map((item) => item.id)
       if (ids.length > 0) {
-        mutations.setRead(ids, true)
+        await mutations.setReadAsync(ids, true)
       }
       notify(t.article.markedAllRead)
       return
