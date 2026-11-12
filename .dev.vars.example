@@ -7,3 +7,7 @@ IMAGE_PROXY_KEY=dev-image-proxy-key-change-me
 # wrangler.jsonc leaves DEMO_MODE empty so this line can turn it on.
 # Omit DEMO_FEEDS to use the built-in list in src/server/demo/feeds.ts.
 # DEMO_MODE=1
+# Recommendations (optional). Jev scores items against your preference text,
+# and OpenAI rewrites the preference text from your feedback.
+# JEV_API_KEY=
+# OPENAI_API_KEY=

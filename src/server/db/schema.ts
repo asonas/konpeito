@@ -3,7 +3,17 @@
  * 実行時のクエリは手書きのSQLで、この定義は読まない
  * drizzle-kitが各テーブルをエクスポートから拾うので、コードからの参照が無くても消さない
  */
-import { blob, integer, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core'
+import { sql } from 'drizzle-orm'
+import {
+  blob,
+  index,
+  integer,
+  primaryKey,
+  real,
+  sqliteTable,
+  text,
+  uniqueIndex,
+} from 'drizzle-orm/sqlite-core'
 
 export const feeds = sqliteTable('feeds', {
   id: integer('id').primaryKey({ autoIncrement: true }),
@@ -165,3 +175,60 @@ export const hostThrottle = sqliteTable('host_throttle', {
   host: text('host').primaryKey(),
   retryAfter: integer('retry_after').notNull(),
 })
+
+export const preferenceVersions = sqliteTable(
+  'preference_versions',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    body: text('body').notNull(),
+    source: text('source', { enum: ['manual', 'llm'] }).notNull(),
+    parentId: integer('parent_id'),
+    status: text('status', { enum: ['active', 'candidate', 'rejected', 'retired'] }).notNull(),
+    evalJson: text('eval_json'),
+    rationale: text('rationale'),
+    createdAt: integer('created_at').notNull(),
+    activatedAt: integer('activated_at'),
+  },
+  (table) => [
+    uniqueIndex('preference_versions_single_active').on(table.status).where(sql`status = 'active'`),
+  ],
+)
+
+export const itemScores = sqliteTable(
+  'item_scores',
+  {
+    itemId: integer('item_id')
+      .notNull()
+      .references(() => items.id, { onDelete: 'cascade' }),
+    versionId: integer('version_id')
+      .notNull()
+      .references(() => preferenceVersions.id, { onDelete: 'cascade' }),
+    score: real('score').notNull(),
+    scoredAt: integer('scored_at').notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.itemId, table.versionId] }),
+    index('item_scores_version_score').on(table.versionId, table.score),
+  ],
+)
+
+export const itemEvents = sqliteTable(
+  'item_events',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    itemId: integer('item_id')
+      .notNull()
+      .references(() => items.id, { onDelete: 'cascade' }),
+    kind: text('kind', {
+      enum: ['impression', 'open', 'close', 'like', 'dislike', 'clear_feedback'],
+    }).notNull(),
+    versionId: integer('version_id'),
+    score: real('score'),
+    dwellMs: integer('dwell_ms'),
+    createdAt: integer('created_at').notNull(),
+  },
+  (table) => [
+    index('item_events_item_kind').on(table.itemId, table.kind),
+    index('item_events_created').on(table.createdAt),
+  ],
+)
