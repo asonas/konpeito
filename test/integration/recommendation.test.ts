@@ -234,7 +234,7 @@ function fakeApis(
   }
 }
 
-/** Item 1〜15に👍、16〜30に👎を付ける */
+/** Item 1〜15を高評価、16〜30を低評価にする */
 async function seedLabeledItems(): Promise<void> {
   await seedFeed()
   await seedActiveVersion(1, 'OLD')
