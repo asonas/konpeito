@@ -1,0 +1,53 @@
+import { useCallback, useEffect, useRef } from 'react'
+import { postItemEvent } from './queries.ts'
+
+/**
+ * 一覧の行が画面に半分以上入った時に、その記事の表示を1回だけ記録する
+ * 仮想スクロールが先読みして描画しただけの行は数えない
+ * 返す関数は行の`ref`から呼ぶ
+ */
+export function useImpressionTracker(
+  enabled: boolean,
+): (node: HTMLElement | null, itemId: number) => void {
+  const observer = useRef<IntersectionObserver | null>(null)
+  const idsByNode = useRef(new WeakMap<Element, number>())
+  const sent = useRef(new Set<number>())
+
+  useEffect(() => {
+    return () => {
+      observer.current?.disconnect()
+      observer.current = null
+    }
+  }, [])
+
+  return useCallback(
+    (node: HTMLElement | null, itemId: number) => {
+      if (!enabled || node === null || typeof IntersectionObserver === 'undefined') {
+        return
+      }
+      if (sent.current.has(itemId)) {
+        return
+      }
+      // 行の`ref`は描画の後、effectより先に呼ばれるので、ここで作る
+      observer.current ??= new IntersectionObserver(
+        (entries, self) => {
+          for (const entry of entries) {
+            const id = idsByNode.current.get(entry.target)
+            if (!entry.isIntersecting || id === undefined || sent.current.has(id)) {
+              continue
+            }
+            sent.current.add(id)
+            self.unobserve(entry.target)
+            postItemEvent(id, 'impression').catch(() => {
+              // 記録は推薦の学習にだけ使うので、失敗しても一覧の操作は止めない
+            })
+          }
+        },
+        { threshold: 0.5 },
+      )
+      idsByNode.current.set(node, itemId)
+      observer.current.observe(node)
+    },
+    [enabled],
+  )
+}

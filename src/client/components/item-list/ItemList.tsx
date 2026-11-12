@@ -15,6 +15,7 @@ import type { Messages } from '../../i18n/en.ts'
 import { useMessages } from '../../i18n/I18nProvider.tsx'
 import { useFeedRefresh } from '../../lib/feed-refresh.tsx'
 import { formatRelative } from '../../lib/format.ts'
+import { useImpressionTracker } from '../../lib/impressions.ts'
 import { itemLink, sourceLink } from '../../lib/links.ts'
 import type { Feed, ItemSummary, Settings, Tag } from '../../lib/queries.ts'
 import { itemMatches, itemRefOf } from '../../lib/refs.ts'
@@ -95,6 +96,8 @@ export function ItemList(props: {
   const currentTag =
     source.kind === 'tag' ? props.tags.find((tag) => tag.id === source.tagId) : undefined
   const { scrolled, onScroll } = useScrolled(props.onScroll)
+  const tracksImpressions = source.kind === 'recommended' && !props.readOnly
+  const trackImpression = useImpressionTracker(tracksImpressions)
 
   const virtualizer = useVirtualizer({
     count: items.length,
@@ -211,7 +214,14 @@ export function ItemList(props: {
                 feedName={feed ? feedTitle(feed) : ''}
                 feedIconUrl={feed?.icon_url ?? null}
                 href={itemLink(source, itemRefOf(item), props.search)}
-                measure={virtualizer.measureElement}
+                measure={
+                  tracksImpressions
+                    ? (node) => {
+                        virtualizer.measureElement(node)
+                        trackImpression(node, item.id)
+                      }
+                    : virtualizer.measureElement
+                }
                 onFocus={() => {
                   if (row.index >= fetchThreshold && hasNextPage && !isFetchingNextPage) {
                     fetchNextPage()

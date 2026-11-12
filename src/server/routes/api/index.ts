@@ -70,11 +70,11 @@ import {
   createManualVersion,
   getActiveVersion,
   getFeedback,
+  insertImpression,
   insertItemEvent,
   listRecommendations,
   listVersions,
   type RecommendedItem,
-  recordImpressionsStatements,
 } from '../../services/recommendation/store.ts'
 import type { AppEnv } from '../../types.ts'
 
@@ -204,9 +204,6 @@ export const api = new Hono<AppEnv>()
       return c.json({ items: [] as RecommendedItem[], version: null })
     }
     const items = await listRecommendations(c.env.DB, active.id, c.req.valid('query').limit)
-    if (items.length > 0) {
-      await c.env.DB.batch(recordImpressionsStatements(c.env.DB, active.id, items, nowSec()))
-    }
     return c.json({ items, version: active.id })
   })
   .get('/recommendation/status', async (c) => {
@@ -233,6 +230,10 @@ export const api = new Hono<AppEnv>()
   })
   .post('/items/:id/events', withRowId('items'), zv('json', itemEventSchema), async (c) => {
     const body = c.req.valid('json')
+    if (body.kind === 'impression') {
+      await insertImpression(c.env.DB, c.get('rowId'), nowSec())
+      return c.json({ ok: true })
+    }
     const dwellMs =
       body.kind === 'close' && body.dwell_ms !== undefined
         ? Math.min(body.dwell_ms, MAX_DWELL_MS)

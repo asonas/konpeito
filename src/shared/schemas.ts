@@ -137,7 +137,14 @@ export const fullContentQuerySchema = z.object({
   force: z.enum(['0', '1']).optional(),
 })
 
-export const ITEM_EVENT_KINDS = ['open', 'close', 'like', 'dislike', 'clear_feedback'] as const
+export const ITEM_EVENT_KINDS = [
+  'impression',
+  'open',
+  'close',
+  'like',
+  'dislike',
+  'clear_feedback',
+] as const
 
 export const itemEventSchema = z.object({
   kind: z.enum(ITEM_EVENT_KINDS),

@@ -147,7 +147,7 @@ describe('recommendation API', () => {
     expect(written?.n).toBe(0)
   })
 
-  it('ranks unread items by score, mixes in exploration and records each impression once', async () => {
+  it('ranks unread items by score and mixes in exploration', async () => {
     await seedFeed()
     await seedActiveVersion()
     for (let id = 1; id <= 12; id += 1) {
@@ -179,12 +179,31 @@ describe('recommendation API', () => {
       false,
       true,
     ])
+    // 一覧を返しただけでは、画面に出ていない記事も含むので表示として数えない
+    const listed = await env.DB.prepare('SELECT COUNT(*) AS n FROM item_events').first<{
+      n: number
+    }>()
+    expect(listed?.n).toBe(0)
+  })
 
-    await api('/recommendations?limit=10', { cookie })
-    const impressions = await env.DB.prepare(
-      "SELECT item_id, COUNT(*) AS n FROM item_events WHERE kind = 'impression' GROUP BY item_id HAVING n > 1",
+  it('records the first impression of an item with the active version and its score', async () => {
+    await seedFeed()
+    await seedActiveVersion()
+    await seedItem(1)
+    await seedScore(1, 0.42)
+    const cookie = await sessionCookie()
+    const post = () =>
+      api('/items/1/events', {
+        method: 'POST',
+        cookie,
+        body: JSON.stringify({ kind: 'impression' }),
+      })
+    expect((await post()).status).toBe(200)
+    expect((await post()).status).toBe(200)
+    const rows = await env.DB.prepare(
+      "SELECT version_id, score FROM item_events WHERE kind = 'impression'",
     ).all()
-    expect(impressions.results).toEqual([])
+    expect(rows.results).toEqual([{ version_id: 1, score: 0.42 }])
   })
 
   it('returns 404 for events on a missing item', async () => {

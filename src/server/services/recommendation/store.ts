@@ -190,19 +190,23 @@ LIMIT ?`,
   )
 }
 
-/** 同じ記事の表示を何度も数えないよう、最初の表示だけを残す */
-export function recordImpressionsStatements(
-  db: D1Database,
-  versionId: number,
-  items: readonly RecommendedItem[],
-  now: number,
-): D1PreparedStatement[] {
-  const statement = db.prepare(
-    `INSERT INTO item_events (item_id, kind, version_id, score, created_at)
-SELECT ?, 'impression', ?, ?, ?
-WHERE NOT EXISTS (SELECT 1 FROM item_events WHERE item_id = ? AND kind = 'impression')`,
-  )
-  return items.map((item) => statement.bind(item.id, versionId, item.score, now, item.id))
+/**
+ * 記事が画面に表示された事を記録する。表示した時点の有効な版とその版のスコアを添える
+ * 同じ記事の表示を何度も数えないよう、最初の表示だけを残す
+ */
+export async function insertImpression(db: D1Database, itemId: number, now: number): Promise<void> {
+  await db
+    .prepare(
+      `INSERT INTO item_events (item_id, kind, version_id, score, created_at)
+SELECT items.id, 'impression', v.id, s.score, ?
+FROM items
+LEFT JOIN preference_versions v ON v.status = 'active'
+LEFT JOIN item_scores s ON s.item_id = items.id AND s.version_id = v.id
+WHERE items.id = ?
+  AND NOT EXISTS (SELECT 1 FROM item_events WHERE item_id = items.id AND kind = 'impression')`,
+    )
+    .bind(now, itemId)
+    .run()
 }
 
 /** 記事が無ければ何も書かずに`false`を返す */

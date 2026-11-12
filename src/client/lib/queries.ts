@@ -332,7 +332,7 @@ export async function signOutSession(id: string): Promise<void> {
 type RecommendationsOk = InferResponseType<typeof api.recommendations.$get, 200>
 export type RecommendationStatus = InferResponseType<typeof api.recommendation.status.$get, 200>
 export type Feedback = 'like' | 'dislike' | null
-export type ItemEventKind = 'open' | 'close' | 'like' | 'dislike' | 'clear_feedback'
+export type ItemEventKind = 'impression' | 'open' | 'close' | 'like' | 'dislike' | 'clear_feedback'
 
 export async function fetchRecommendationsPage(): Promise<ItemListPage> {
   return okJsonWith(
