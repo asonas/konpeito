@@ -2,6 +2,7 @@ import type { ITEM_EVENT_KINDS } from '../../../shared/schemas.ts'
 import { type ItemListRow, LIST_COLUMNS, mapItemListRow } from '../../db/queries/items.ts'
 import type { ItemForList } from '../../lib/client-shape.ts'
 import type { JevItem } from './jev.ts'
+import type { EventRow, StarRow } from './labels.ts'
 
 export type PreferenceVersionRow = {
   id: number
@@ -231,4 +232,99 @@ ORDER BY created_at DESC, id DESC LIMIT 1`,
     .bind(itemId)
     .first<{ kind: string }>()
   return row?.kind === 'like' || row?.kind === 'dislike' ? row.kind : null
+}
+
+/** `deriveLabels`は同じ時刻の明示的な評価を渡された順で解くので、時刻とidで並べる */
+export async function loadLabelSources(
+  db: D1Database,
+  since: number,
+): Promise<{ events: EventRow[]; stars: StarRow[] }> {
+  const [events, stars] = await db.batch([
+    db
+      .prepare(
+        `SELECT item_id, kind, dwell_ms, created_at FROM item_events
+WHERE created_at >= ? ORDER BY created_at, id`,
+      )
+      .bind(since),
+    db
+      .prepare('SELECT id, starred_at FROM items WHERE is_starred = 1 AND starred_at >= ?')
+      .bind(since),
+  ])
+  return {
+    events: (events?.results ?? []) as EventRow[],
+    stars: (stars?.results ?? []) as StarRow[],
+  }
+}
+
+export async function lastLearningAt(db: D1Database): Promise<number> {
+  const row = await db
+    .prepare('SELECT MAX(created_at) AS at FROM preference_versions')
+    .first<{ at: number | null }>()
+  return row?.at ?? 0
+}
+
+export async function insertCandidate(
+  db: D1Database,
+  candidate: { body: string; rationale: string; parentId: number; now: number },
+): Promise<number> {
+  const row = await db
+    .prepare(
+      `INSERT INTO preference_versions (body, source, parent_id, status, rationale, created_at)
+VALUES (?, 'llm', ?, 'candidate', ?, ?) RETURNING id`,
+    )
+    .bind(candidate.body, candidate.parentId, candidate.rationale, candidate.now)
+    .first<{ id: number }>()
+  if (!row) {
+    throw new Error('Failed to insert a candidate preference')
+  }
+  return row.id
+}
+
+/** 有効な版は1件だけなので、新しい版を有効にする前に今の版を退かせる */
+export function activateStatements(
+  db: D1Database,
+  versionId: number,
+  evalJson: string | null,
+  now: number,
+): D1PreparedStatement[] {
+  return [
+    db.prepare("UPDATE preference_versions SET status = 'retired' WHERE status = 'active'"),
+    db
+      .prepare(
+        "UPDATE preference_versions SET status = 'active', activated_at = ?, eval_json = ? WHERE id = ?",
+      )
+      .bind(now, evalJson, versionId),
+  ]
+}
+
+export function rejectStatement(
+  db: D1Database,
+  versionId: number,
+  evalJson: string,
+): D1PreparedStatement {
+  return db
+    .prepare("UPDATE preference_versions SET status = 'rejected', eval_json = ? WHERE id = ?")
+    .bind(evalJson, versionId)
+}
+
+export async function createManualVersion(
+  db: D1Database,
+  body: string,
+  now: number,
+): Promise<number> {
+  const active = await getActiveVersion(db)
+  const [, inserted] = await db.batch([
+    db.prepare("UPDATE preference_versions SET status = 'retired' WHERE status = 'active'"),
+    db
+      .prepare(
+        `INSERT INTO preference_versions (body, source, parent_id, status, created_at, activated_at)
+VALUES (?, 'manual', ?, 'active', ?, ?) RETURNING id`,
+      )
+      .bind(body, active?.id ?? null, now, now),
+  ])
+  const id = (inserted?.results[0] as { id: number } | undefined)?.id
+  if (id === undefined) {
+    throw new Error('Failed to insert a preference')
+  }
+  return id
 }

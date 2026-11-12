@@ -1,8 +1,23 @@
+import { hasEnoughLabels, shouldAdopt, weightedAuc } from './evaluate.ts'
 import type { ApiFailure } from './http.ts'
 import { DEFAULT_JEV_MODEL, JEV_BATCH_SIZE, type JevDeps, scoreItems } from './jev.ts'
+import { deriveLabels, type Label, STRONG_WEIGHT } from './labels.ts'
 import {
+  DEFAULT_OPENAI_MODEL,
+  type FeedbackExample,
+  type OpenAiDeps,
+  proposePreference,
+} from './openai.ts'
+import {
+  activateStatements,
   getActiveVersion,
+  getScorableItems,
+  getScores,
+  insertCandidate,
+  lastLearningAt,
   listUnscoredItems,
+  loadLabelSources,
+  rejectStatement,
   type ScorableItem,
   saveScoresStatements,
 } from './store.ts'
@@ -67,5 +82,147 @@ export async function scorePendingItems(env: Env, now: number): Promise<void> {
     version: active.id,
     scored: scores.size,
     ...(failure !== null ? { failure } : {}),
+  })
+}
+
+const LEARNING_WINDOW = 60 * DAY
+const MAX_LABELS = 150
+const MAX_EXAMPLES = 80
+const MIN_NEW_LABELS = 10
+
+export function openAiDeps(env: Env): OpenAiDeps | null {
+  if (!env.OPENAI_API_KEY) {
+    return null
+  }
+  return {
+    fetch: globalThis.fetch,
+    apiKey: env.OPENAI_API_KEY,
+    model: env.OPENAI_MODEL || DEFAULT_OPENAI_MODEL,
+  }
+}
+
+export async function loadLabels(db: D1Database, now: number): Promise<Label[]> {
+  const { events, stars } = await loadLabelSources(db, now - LEARNING_WINDOW)
+  return deriveLabels(events, stars, now)
+    .sort((a, b) => b.at - a.at)
+    .slice(0, MAX_LABELS)
+}
+
+function toExample(label: Label, item: ScorableItem): FeedbackExample {
+  return {
+    feed: item.feed,
+    title: item.title,
+    reaction: label.positive ? 'liked' : 'disliked',
+    strength: label.weight >= STRONG_WEIGHT ? 'strong' : 'weak',
+  }
+}
+
+/**
+ * 反応から嗜好文の候補を作り、ラベル付きの記事を現行と候補の両方で採点して比べる
+ * 候補が勝てば有効にし、負ければ却下として残す
+ */
+export async function runPreferenceLearning(env: Env, now: number): Promise<void> {
+  const jev = jevDeps(env)
+  const openai = openAiDeps(env)
+  if (jev === null || openai === null) {
+    return
+  }
+  const active = await getActiveVersion(env.DB)
+  if (active === null) {
+    return
+  }
+  const lastRun = await lastLearningAt(env.DB)
+  const allLabels = await loadLabels(env.DB, now)
+  const items = new Map(
+    (
+      await getScorableItems(
+        env.DB,
+        allLabels.map((label) => label.itemId),
+      )
+    ).map((item) => [item.id, item]),
+  )
+  const labels = allLabels.filter((label) => items.has(label.itemId))
+  const fresh = labels.filter((label) => label.at > lastRun).length
+  if (fresh < MIN_NEW_LABELS || !hasEnoughLabels(labels)) {
+    console.log({ event: 'recommendation.learn.skip', labels: labels.length, fresh })
+    return
+  }
+
+  const examples = labels.slice(0, MAX_EXAMPLES).flatMap((label) => {
+    const item = items.get(label.itemId)
+    return item === undefined ? [] : [toExample(label, item)]
+  })
+  const proposal = await proposePreference(active.body, examples, openai)
+  if (proposal.kind !== 'ok') {
+    console.log({ event: 'recommendation.learn.propose_failed', failure: proposal })
+    return
+  }
+  const candidateId = await insertCandidate(env.DB, {
+    body: proposal.preference,
+    rationale: proposal.rationale,
+    parentId: active.id,
+    now,
+  })
+
+  const labeledItems = labels.flatMap((label) => {
+    const item = items.get(label.itemId)
+    return item === undefined ? [] : [item]
+  })
+  const activeScores = await getScores(
+    env.DB,
+    active.id,
+    labeledItems.map((item) => item.id),
+  )
+  const missing = labeledItems.filter((item) => !activeScores.has(item.id))
+  const activeRun = await scoreInBatches(missing, active.body, jev)
+  const candidateRun =
+    activeRun.failure === null
+      ? await scoreInBatches(labeledItems, proposal.preference, jev)
+      : { scores: new Map<number, number>(), failure: activeRun.failure }
+  await env.DB.batch([
+    ...saveScoresStatements(env.DB, active.id, activeRun.scores, now),
+    ...saveScoresStatements(env.DB, candidateId, candidateRun.scores, now),
+  ])
+  if (candidateRun.failure !== null) {
+    await rejectStatement(
+      env.DB,
+      candidateId,
+      JSON.stringify({ error: candidateRun.failure }),
+    ).run()
+    console.log({ event: 'recommendation.learn.score_failed', failure: candidateRun.failure })
+    return
+  }
+
+  for (const [id, score] of activeRun.scores) {
+    activeScores.set(id, score)
+  }
+  const samples = (scores: ReadonlyMap<number, number>) =>
+    labels.flatMap((label) => {
+      const score = scores.get(label.itemId)
+      return score === undefined ? [] : [{ score, positive: label.positive, weight: label.weight }]
+    })
+  const aucActive = weightedAuc(samples(activeScores))
+  const aucCandidate = weightedAuc(samples(candidateRun.scores))
+  const adopted = shouldAdopt(aucActive, aucCandidate)
+  const evalJson = JSON.stringify({
+    compared_with: active.id,
+    labels: labels.length,
+    positives: labels.filter((label) => label.positive).length,
+    negatives: labels.filter((label) => !label.positive).length,
+    auc_active: aucActive,
+    auc_candidate: aucCandidate,
+    model: { jev: jev.model, openai: openai.model },
+  })
+  if (adopted) {
+    await env.DB.batch(activateStatements(env.DB, candidateId, evalJson, now))
+  } else {
+    await rejectStatement(env.DB, candidateId, evalJson).run()
+  }
+  console.log({
+    event: 'recommendation.learn',
+    candidate: candidateId,
+    adopted,
+    auc_active: aucActive,
+    auc_candidate: aucCandidate,
   })
 }

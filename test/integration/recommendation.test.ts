@@ -1,7 +1,10 @@
 import { SELF } from 'cloudflare:test'
 import { env } from 'cloudflare:workers'
 import { beforeEach, describe, expect, it } from 'vitest'
-import { scorePendingItems } from '../../src/server/services/recommendation/jobs.ts'
+import {
+  runPreferenceLearning,
+  scorePendingItems,
+} from '../../src/server/services/recommendation/jobs.ts'
 import { ORIGIN, sessionCookie, withFetch } from '../helpers.ts'
 
 const NOW = 1_800_000_000
@@ -204,5 +207,96 @@ describe('recommendation API', () => {
     await post('clear_feedback')
     const cleared = await api('/items/1/feedback', { cookie })
     expect(await cleared.json()).toEqual({ feedback: null })
+  })
+})
+
+/** OpenAIは`proposal`を返し、Jevは嗜好文ごとに`scoreFor`で決めたスコアを返す */
+function fakeApis(
+  proposal: string,
+  scoreFor: (preference: string, title: string) => number,
+): typeof fetch {
+  return async (input, init) => {
+    const url = String(input)
+    const body = JSON.parse(String(init?.body))
+    if (url.startsWith('https://api.openai.com/')) {
+      const text = JSON.stringify({ preference: proposal, rationale: 'because' })
+      return Response.json({
+        output: [{ type: 'message', content: [{ type: 'output_text', text }] }],
+      })
+    }
+    const { preference, items } = body.state as { preference: string; items: { title: string }[] }
+    const answers = Object.fromEntries(
+      items.map((item, i) => [`i${i}`, { type: 'noul', noul: scoreFor(preference, item.title) }]),
+    )
+    return Response.json({ model: body.model, answers })
+  }
+}
+
+/** Item 1〜15に👍、16〜30に👎を付ける */
+async function seedLabeledItems(): Promise<void> {
+  await seedFeed()
+  await seedActiveVersion(1, 'OLD')
+  for (let id = 1; id <= 30; id += 1) {
+    await seedItem(id, { read: true })
+    await env.DB.prepare('INSERT INTO item_events (item_id, kind, created_at) VALUES (?, ?, ?)')
+      .bind(id, id <= 15 ? 'like' : 'dislike', NOW - 3600)
+      .run()
+  }
+}
+
+const liked = (title: string) => Number(title.replace('Item ', '')) <= 15
+const keys = { JEV_API_KEY: 'jev', OPENAI_API_KEY: 'openai' }
+
+describe('runPreferenceLearning', () => {
+  it('activates a candidate that separates liked from disliked items better', async () => {
+    await seedLabeledItems()
+    await withFetch(
+      fakeApis('NEW', (preference, title) =>
+        preference === 'NEW' ? (liked(title) ? 0.9 : 0.1) : 0.5,
+      ),
+      () => runPreferenceLearning({ ...env, ...keys }, NOW),
+    )
+    const versions = await env.DB.prepare(
+      'SELECT body, status, parent_id FROM preference_versions ORDER BY id',
+    ).all()
+    expect(versions.results).toEqual([
+      { body: 'OLD', status: 'retired', parent_id: null },
+      { body: 'NEW', status: 'active', parent_id: 1 },
+    ])
+  })
+
+  it('keeps the active version when the candidate does worse', async () => {
+    await seedLabeledItems()
+    await withFetch(
+      fakeApis('NEW', (preference, title) =>
+        preference === 'NEW' ? (liked(title) ? 0.1 : 0.9) : liked(title) ? 0.6 : 0.4,
+      ),
+      () => runPreferenceLearning({ ...env, ...keys }, NOW),
+    )
+    const versions = await env.DB.prepare(
+      'SELECT body, status, eval_json FROM preference_versions ORDER BY id',
+    ).all<{ body: string; status: string; eval_json: string | null }>()
+    expect(versions.results.map((row) => [row.body, row.status])).toEqual([
+      ['OLD', 'active'],
+      ['NEW', 'rejected'],
+    ])
+    expect(JSON.parse(versions.results[1]?.eval_json ?? '{}')).toMatchObject({
+      auc_active: 1,
+      auc_candidate: 0,
+    })
+  })
+
+  it('does not call the APIs until enough new feedback arrives', async () => {
+    await seedLabeledItems()
+    await env.DB.prepare('UPDATE preference_versions SET created_at = ?').bind(NOW).run()
+    let calls = 0
+    await withFetch(
+      async () => {
+        calls += 1
+        return new Response('unexpected', { status: 500 })
+      },
+      () => runPreferenceLearning({ ...env, ...keys }, NOW),
+    )
+    expect(calls).toBe(0)
   })
 })

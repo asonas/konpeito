@@ -48,6 +48,7 @@ export default {
     }
     await jobs.backfillPublicIds(env.DB)
     await jobs.runDailyMaintenance(env, now)
+    await runRecommendation('learn', (r) => r.runPreferenceLearning(env, now))
   },
   async queue(batch, env) {
     if (env.DEMO_MODE === '1') {
