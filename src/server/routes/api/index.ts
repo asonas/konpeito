@@ -11,11 +11,13 @@ import {
   deleteFeedItemsSchema,
   discoverFeedSchema,
   fullContentQuerySchema,
+  itemEventSchema,
   itemsQuerySchema,
   markAllReadSchema,
   patchFeedSchema,
   patchTagSchema,
   readSchema,
+  recommendationsQuerySchema,
   reorderIdsSchema,
   settingsPatchSchema,
   tokenSignInPatchSchema,
@@ -62,7 +64,18 @@ import {
   type SessionRow,
 } from '../../middleware/session.ts'
 import type { OpmlFeed } from '../../services/opml.ts'
+import {
+  getActiveVersion,
+  getFeedback,
+  insertItemEvent,
+  listRecommendations,
+  type RecommendedItem,
+  recordImpressionsStatements,
+} from '../../services/recommendation/store.ts'
 import type { AppEnv } from '../../types.ts'
+
+/** 開いたまま放置したタブの閲覧時間で、弱い正例の判定が歪まないようにする上限 */
+const MAX_DWELL_MS = 30 * 60 * 1000
 
 const opmlImportSchema = z.object({
   xml: z.string(),
@@ -180,6 +193,37 @@ export const api = new Hono<AppEnv>()
       }
       throw error
     }
+  })
+  .get('/recommendations', zv('query', recommendationsQuerySchema), async (c) => {
+    const active = await getActiveVersion(c.env.DB)
+    if (active === null) {
+      return c.json({ items: [] as RecommendedItem[], version: null })
+    }
+    const items = await listRecommendations(c.env.DB, active.id, c.req.valid('query').limit)
+    if (items.length > 0) {
+      await c.env.DB.batch(recordImpressionsStatements(c.env.DB, active.id, items, nowSec()))
+    }
+    return c.json({ items, version: active.id })
+  })
+  .post('/items/:id/events', withRowId('items'), zv('json', itemEventSchema), async (c) => {
+    const body = c.req.valid('json')
+    const dwellMs =
+      body.kind === 'close' && body.dwell_ms !== undefined
+        ? Math.min(body.dwell_ms, MAX_DWELL_MS)
+        : null
+    const recorded = await insertItemEvent(c.env.DB, {
+      itemId: c.get('rowId'),
+      kind: body.kind,
+      dwellMs,
+      now: nowSec(),
+    })
+    if (!recorded) {
+      return c.json(apiError('item_not_found', 'Item not found'), 404)
+    }
+    return c.json({ ok: true })
+  })
+  .get('/items/:id/feedback', withRowId('items'), async (c) => {
+    return c.json({ feedback: await getFeedback(c.env.DB, c.get('rowId')) })
   })
   .post('/items/read', zv('json', readSchema), async (c) => {
     const body = c.req.valid('json')

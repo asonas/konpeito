@@ -136,3 +136,18 @@ export const tokenSignInPatchSchema = z.object({
 export const fullContentQuerySchema = z.object({
   force: z.enum(['0', '1']).optional(),
 })
+
+export const ITEM_EVENT_KINDS = ['open', 'close', 'like', 'dislike', 'clear_feedback'] as const
+
+export const itemEventSchema = z.object({
+  kind: z.enum(ITEM_EVENT_KINDS),
+  dwell_ms: z.number().int().min(0).optional(),
+})
+
+export const recommendationsQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(100).default(50),
+})
+
+export const preferenceSchema = z.object({
+  body: z.string().trim().min(1).max(4000),
+})

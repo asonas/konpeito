@@ -1,7 +1,8 @@
+import { SELF } from 'cloudflare:test'
 import { env } from 'cloudflare:workers'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { scorePendingItems } from '../../src/server/services/recommendation/jobs.ts'
-import { withFetch } from '../helpers.ts'
+import { ORIGIN, sessionCookie, withFetch } from '../helpers.ts'
 
 const NOW = 1_800_000_000
 const DAY = 24 * 60 * 60
@@ -102,5 +103,106 @@ describe('scorePendingItems', () => {
     const requests: unknown[] = []
     await withFetch(fakeJev(requests), () => scorePendingItems(env, NOW))
     expect(requests).toHaveLength(0)
+  })
+})
+
+async function api(path: string, init: RequestInit & { cookie?: string } = {}): Promise<Response> {
+  const headers: Record<string, string> = { Origin: ORIGIN }
+  if (init.body !== undefined) {
+    headers['Content-Type'] = 'application/json'
+  }
+  if (init.cookie !== undefined) {
+    headers.Cookie = init.cookie
+  }
+  return SELF.fetch(`${ORIGIN}/api/v1${path}`, { ...init, headers })
+}
+
+async function seedScore(itemId: number, score: number, versionId = 1): Promise<void> {
+  await env.DB.prepare(
+    'INSERT INTO item_scores (item_id, version_id, score, scored_at) VALUES (?, ?, ?, ?)',
+  )
+    .bind(itemId, versionId, score, NOW)
+    .run()
+}
+
+describe('recommendation API', () => {
+  it.each([
+    ['GET', '/recommendations', undefined],
+    ['POST', '/items/1/events', JSON.stringify({ kind: 'like' })],
+    ['GET', '/items/1/feedback', undefined],
+  ])('rejects %s %s without a session', async (method, path, body) => {
+    await seedFeed()
+    await seedItem(1)
+    const res = await api(path, { method, ...(body !== undefined ? { body } : {}) })
+    expect(res.status).toBe(401)
+    const events = await env.DB.prepare('SELECT COUNT(*) AS n FROM item_events').first<{
+      n: number
+    }>()
+    expect(events?.n).toBe(0)
+  })
+
+  it('ranks unread items by score, mixes in exploration and records each impression once', async () => {
+    await seedFeed()
+    await seedActiveVersion()
+    for (let id = 1; id <= 12; id += 1) {
+      await seedItem(id, { read: id === 12 })
+      await seedScore(id, id / 100)
+    }
+    const cookie = await sessionCookie()
+
+    const res = await api('/recommendations?limit=10', { cookie })
+    expect(res.status).toBe(200)
+    const body = (await res.json()) as {
+      items: { id: number; explore: boolean }[]
+      version: number
+    }
+    expect(body.version).toBe(1)
+    expect(body.items).toHaveLength(10)
+    expect(body.items.map((item) => item.id)).not.toContain(12)
+    const top = body.items.filter((item) => !item.explore).map((item) => item.id)
+    expect(top).toEqual([11, 10, 9, 8, 7, 6, 5, 4])
+    expect(body.items.map((item) => item.explore)).toEqual([
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      true,
+    ])
+
+    await api('/recommendations?limit=10', { cookie })
+    const impressions = await env.DB.prepare(
+      "SELECT item_id, COUNT(*) AS n FROM item_events WHERE kind = 'impression' GROUP BY item_id HAVING n > 1",
+    ).all()
+    expect(impressions.results).toEqual([])
+  })
+
+  it('returns 404 for events on a missing item', async () => {
+    await seedFeed()
+    const res = await api('/items/999/events', {
+      method: 'POST',
+      cookie: await sessionCookie(),
+      body: JSON.stringify({ kind: 'open' }),
+    })
+    expect(res.status).toBe(404)
+  })
+
+  it('reports the latest explicit feedback', async () => {
+    await seedFeed()
+    await seedItem(1)
+    const cookie = await sessionCookie()
+    const post = (kind: string) =>
+      api('/items/1/events', { method: 'POST', cookie, body: JSON.stringify({ kind }) })
+    await post('like')
+    await post('dislike')
+    const res = await api('/items/1/feedback', { cookie })
+    expect(await res.json()).toEqual({ feedback: 'dislike' })
+    await post('clear_feedback')
+    const cleared = await api('/items/1/feedback', { cookie })
+    expect(await cleared.json()).toEqual({ feedback: null })
   })
 })

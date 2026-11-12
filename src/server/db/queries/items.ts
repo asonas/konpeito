@@ -4,11 +4,11 @@ import { decodeCursorBytes, encodeCursor } from '../../lib/crypto.ts'
 import { type IdRef, placeholders } from '../../lib/ids.ts'
 import { ftsMatchQuery, parseSearchQuery } from '../../services/search.ts'
 
-const LIST_COLUMNS = `id, feed_id, title, url, author, summary, lead_image_url,
+export const LIST_COLUMNS = `id, feed_id, title, url, author, summary, lead_image_url,
        published_at, is_read, is_starred,
        significant_update_at, starred_at, read_at, public_id`
 
-type ItemListRow = Omit<ItemForList, 'is_read' | 'is_bookmarked' | 'has_update'> & {
+export type ItemListRow = Omit<ItemForList, 'is_read' | 'is_bookmarked' | 'has_update'> & {
   is_read: number
   is_starred: number
   significant_update_at: number | null
@@ -171,7 +171,7 @@ LIMIT ?`
   return { sql, binds }
 }
 
-function mapItemListRow(row: ItemListRow): ItemForList {
+export function mapItemListRow(row: ItemListRow): ItemForList {
   return {
     id: row.id,
     feed_id: row.feed_id,
