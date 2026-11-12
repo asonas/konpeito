@@ -1,6 +1,7 @@
 import { SELF } from 'cloudflare:test'
 import { env } from 'cloudflare:workers'
 import { beforeEach, describe, expect, it } from 'vitest'
+import { isHoldout } from '../../src/server/services/recommendation/evaluate.ts'
 import {
   runPreferenceLearning,
   scorePendingItems,
@@ -254,19 +255,19 @@ function fakeApis(
   }
 }
 
-/** Item 1〜15を高評価、16〜30を低評価にする */
+/** Item 1〜30を高評価、31〜60を低評価にする。評価用に分かれるのは各9件 */
 async function seedLabeledItems(): Promise<void> {
   await seedFeed()
   await seedActiveVersion(1, 'OLD')
-  for (let id = 1; id <= 30; id += 1) {
+  for (let id = 1; id <= 60; id += 1) {
     await seedItem(id, { read: true })
     await env.DB.prepare('INSERT INTO item_events (item_id, kind, created_at) VALUES (?, ?, ?)')
-      .bind(id, id <= 15 ? 'like' : 'dislike', NOW - 3600)
+      .bind(id, id <= 30 ? 'like' : 'dislike', NOW - 3600)
       .run()
   }
 }
 
-const liked = (title: string) => Number(title.replace('Item ', '')) <= 15
+const liked = (title: string) => Number(title.replace('Item ', '')) <= 30
 const keys = { JEV_API_KEY: 'jev', OPENAI_API_KEY: 'openai' }
 
 describe('runPreferenceLearning', () => {
@@ -289,7 +290,7 @@ describe('runPreferenceLearning', () => {
     const scored = await env.DB.prepare(
       "SELECT COUNT(*) AS n FROM item_scores WHERE version_id = (SELECT id FROM preference_versions WHERE status = 'active')",
     ).first<{ n: number }>()
-    expect(scored?.n).toBe(30)
+    expect(scored?.n).toBe(60)
   })
 
   it('keeps the active version when the candidate does worse', async () => {
@@ -403,5 +404,29 @@ describe('runPreferenceLearning edge cases', () => {
       "SELECT body FROM preference_versions WHERE status = 'active'",
     ).first<{ body: string }>()
     expect(active?.body).toBe('NEWER')
+  })
+})
+
+describe('runPreferenceLearning holdout', () => {
+  it('never shows the items it evaluates on to OpenAI', async () => {
+    await seedLabeledItems()
+    const apis = fakeApis('NEW', () => 0.5)
+    const shown: string[] = []
+    await withFetch(
+      async (input, init) => {
+        if (String(input).startsWith('https://api.openai.com/')) {
+          const body = JSON.parse(String(init?.body)) as { input: string }
+          const { examples } = JSON.parse(body.input) as { examples: { title: string }[] }
+          shown.push(...examples.map((example) => example.title))
+        }
+        return apis(input, init)
+      },
+      () => runPreferenceLearning({ ...env, ...keys }, NOW),
+    )
+    const holdout = Array.from({ length: 60 }, (_, i) => i + 1)
+      .filter(isHoldout)
+      .map((id) => `Item ${id}`)
+    expect(shown.length).toBeGreaterThan(0)
+    expect(shown.filter((title) => holdout.includes(title))).toEqual([])
   })
 })

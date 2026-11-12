@@ -1,4 +1,4 @@
-import { hasEnoughLabels, shouldAdopt, weightedAuc } from './evaluate.ts'
+import { hasEnoughLabels, isHoldout, shouldAdopt, weightedAuc } from './evaluate.ts'
 import type { ApiFailure } from './http.ts'
 import { DEFAULT_JEV_MODEL, JEV_BATCH_SIZE, type JevDeps, scoreItems } from './jev.ts'
 import { deriveLabels, type Label, STRONG_WEIGHT } from './labels.ts'
@@ -142,12 +142,19 @@ export async function runPreferenceLearning(env: Env, now: number): Promise<void
   )
   const labels = allLabels.filter((label) => items.has(label.itemId))
   const fresh = labels.filter((label) => label.at > lastRun).length
-  if (fresh < MIN_NEW_LABELS || !hasEnoughLabels(labels)) {
-    console.log({ event: 'recommendation.learn.skip', labels: labels.length, fresh })
+  const evalLabels = labels.filter((label) => isHoldout(label.itemId))
+  const trainLabels = labels.filter((label) => !isHoldout(label.itemId))
+  if (fresh < MIN_NEW_LABELS || !hasEnoughLabels(evalLabels)) {
+    console.log({
+      event: 'recommendation.learn.skip',
+      labels: labels.length,
+      eval_labels: evalLabels.length,
+      fresh,
+    })
     return
   }
 
-  const examples = labels.slice(0, MAX_EXAMPLES).flatMap((label) => {
+  const examples = trainLabels.slice(0, MAX_EXAMPLES).flatMap((label) => {
     const item = items.get(label.itemId)
     return item === undefined ? [] : [toExample(label, item)]
   })
@@ -169,6 +176,7 @@ export async function runPreferenceLearning(env: Env, now: number): Promise<void
       active,
       candidate: { id: candidateId, body: proposal.preference },
       labels,
+      evalLabels,
       items,
     })
   } catch (error) {
@@ -187,10 +195,12 @@ async function evaluateCandidate(
     active: { id: number; body: string }
     candidate: { id: number; body: string }
     labels: readonly Label[]
+    /** AUCを測る記事。候補の生成には渡していない */
+    evalLabels: readonly Label[]
     items: ReadonlyMap<number, ScorableItem>
   },
 ): Promise<void> {
-  const { jev, active, candidate, labels } = input
+  const { jev, active, candidate, labels, evalLabels } = input
   const labeledItems = labels.flatMap((label) => {
     const item = input.items.get(label.itemId)
     return item === undefined ? [] : [item]
@@ -212,7 +222,7 @@ async function evaluateCandidate(
   }
 
   const samples = (scores: ReadonlyMap<number, number>) =>
-    labels.flatMap((label) => {
+    evalLabels.flatMap((label) => {
       const score = scores.get(label.itemId)
       return score === undefined ? [] : [{ score, positive: label.positive, weight: label.weight }]
     })
@@ -221,9 +231,10 @@ async function evaluateCandidate(
   const adopted = shouldAdopt(aucActive, aucCandidate)
   const evaluation = {
     compared_with: active.id,
-    labels: labels.length,
-    positives: labels.filter((label) => label.positive).length,
-    negatives: labels.filter((label) => !label.positive).length,
+    labels: evalLabels.length,
+    train_labels: labels.length - evalLabels.length,
+    positives: evalLabels.filter((label) => label.positive).length,
+    negatives: evalLabels.filter((label) => !label.positive).length,
     auc_active: aucActive,
     auc_candidate: aucCandidate,
     model: { jev: jev.model, openai: input.openaiModel },
