@@ -89,6 +89,7 @@ export function FeedbackButtons(props: { itemId: number }) {
     onError: (_error, _kind, context) => {
       queryClient.setQueryData<Feedback>(queryKey, context?.previous ?? null)
     },
+    // 送信中はボタンを止めて更新を重ねないので、完了後の再取得が次の楽観的な更新を上書きする事は無い
     onSettled: () => queryClient.invalidateQueries({ queryKey }),
   })
   const toggle = (kind: 'like' | 'dislike') => {
@@ -102,6 +103,7 @@ export function FeedbackButtons(props: { itemId: number }) {
           size="icon"
           aria-label={t.article.like}
           aria-pressed={current === 'like'}
+          disabled={mutation.isPending}
           onClick={() => toggle('like')}
         >
           <ThumbsUp className="h-4 w-4" />
@@ -113,6 +115,7 @@ export function FeedbackButtons(props: { itemId: number }) {
           size="icon"
           aria-label={t.article.dislike}
           aria-pressed={current === 'dislike'}
+          disabled={mutation.isPending}
           onClick={() => toggle('dislike')}
         >
           <ThumbsDown className="h-4 w-4" />
