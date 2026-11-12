@@ -61,9 +61,7 @@
       "indexes": {
         "api_tokens_secret_hash_unique": {
           "name": "api_tokens_secret_hash_unique",
-          "columns": [
-            "secret_hash"
-          ],
+          "columns": ["secret_hash"],
           "isUnique": true
         }
       },
@@ -188,12 +186,8 @@
           "name": "feed_counters_feed_id_feeds_id_fk",
           "tableFrom": "feed_counters",
           "tableTo": "feeds",
-          "columnsFrom": [
-            "feed_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["feed_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -247,12 +241,8 @@
           "name": "feed_stats_feed_id_feeds_id_fk",
           "tableFrom": "feed_stats",
           "tableTo": "feeds",
-          "columnsFrom": [
-            "feed_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["feed_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -285,12 +275,8 @@
           "name": "feed_tags_feed_id_feeds_id_fk",
           "tableFrom": "feed_tags",
           "tableTo": "feeds",
-          "columnsFrom": [
-            "feed_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["feed_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -298,12 +284,8 @@
           "name": "feed_tags_tag_id_tags_id_fk",
           "tableFrom": "feed_tags",
           "tableTo": "tags",
-          "columnsFrom": [
-            "tag_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["tag_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -551,9 +533,7 @@
       "indexes": {
         "feeds_feed_url_unique": {
           "name": "feeds_feed_url_unique",
-          "columns": [
-            "feed_url"
-          ],
+          "columns": ["feed_url"],
           "isUnique": true
         }
       },
@@ -642,17 +622,12 @@
       "indexes": {
         "item_events_item_kind": {
           "name": "item_events_item_kind",
-          "columns": [
-            "item_id",
-            "kind"
-          ],
+          "columns": ["item_id", "kind"],
           "isUnique": false
         },
         "item_events_created": {
           "name": "item_events_created",
-          "columns": [
-            "created_at"
-          ],
+          "columns": ["created_at"],
           "isUnique": false
         }
       },
@@ -661,12 +636,8 @@
           "name": "item_events_item_id_items_id_fk",
           "tableFrom": "item_events",
           "tableTo": "items",
-          "columnsFrom": [
-            "item_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["item_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -710,10 +681,7 @@
       "indexes": {
         "item_scores_version_score": {
           "name": "item_scores_version_score",
-          "columns": [
-            "version_id",
-            "score"
-          ],
+          "columns": ["version_id", "score"],
           "isUnique": false
         }
       },
@@ -722,12 +690,8 @@
           "name": "item_scores_item_id_items_id_fk",
           "tableFrom": "item_scores",
           "tableTo": "items",
-          "columnsFrom": [
-            "item_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["item_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -735,22 +699,15 @@
           "name": "item_scores_version_id_preference_versions_id_fk",
           "tableFrom": "item_scores",
           "tableTo": "preference_versions",
-          "columnsFrom": [
-            "version_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["version_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {
         "item_scores_item_id_version_id_pk": {
-          "columns": [
-            "item_id",
-            "version_id"
-          ],
+          "columns": ["item_id", "version_id"],
           "name": "item_scores_item_id_version_id_pk"
         }
       },
@@ -942,10 +899,7 @@
       "indexes": {
         "items_feed_guid": {
           "name": "items_feed_guid",
-          "columns": [
-            "feed_id",
-            "guid_hash"
-          ],
+          "columns": ["feed_id", "guid_hash"],
           "isUnique": true
         }
       },
@@ -954,12 +908,8 @@
           "name": "items_feed_id_feeds_id_fk",
           "tableFrom": "items",
           "tableTo": "feeds",
-          "columnsFrom": [
-            "feed_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["feed_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1038,9 +988,7 @@
       "indexes": {
         "preference_versions_single_active": {
           "name": "preference_versions_single_active",
-          "columns": [
-            "status"
-          ],
+          "columns": ["status"],
           "isUnique": true,
           "where": "status = 'active'"
         }
@@ -1081,12 +1029,8 @@
           "name": "purged_items_feed_id_feeds_id_fk",
           "tableFrom": "purged_items",
           "tableTo": "feeds",
-          "columnsFrom": [
-            "feed_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["feed_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1154,12 +1098,8 @@
           "name": "sessions_token_id_api_tokens_id_fk",
           "tableFrom": "sessions",
           "tableTo": "api_tokens",
-          "columnsFrom": [
-            "token_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["token_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1235,9 +1175,7 @@
       "indexes": {
         "tags_name_unique": {
           "name": "tags_name_unique",
-          "columns": [
-            "name"
-          ],
+          "columns": ["name"],
           "isUnique": true
         }
       },
