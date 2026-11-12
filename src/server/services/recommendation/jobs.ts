@@ -1,4 +1,4 @@
-import { hasEnoughLabels, isHoldout, shouldAdopt, weightedAuc } from './evaluate.ts'
+import { hasEnoughLabels, isHoldout, MIN_PER_CLASS, shouldAdopt, weightedAuc } from './evaluate.ts'
 import type { ApiFailure } from './http.ts'
 import { DEFAULT_JEV_MODEL, JEV_BATCH_SIZE, type JevDeps, scoreItems } from './jev.ts'
 import { deriveLabels, type Label, STRONG_WEIGHT } from './labels.ts'
@@ -144,7 +144,11 @@ export async function runPreferenceLearning(env: Env, now: number): Promise<void
   const fresh = labels.filter((label) => label.at > lastRun).length
   const evalLabels = labels.filter((label) => isHoldout(label.itemId))
   const trainLabels = labels.filter((label) => !isHoldout(label.itemId))
-  if (fresh < MIN_NEW_LABELS || !hasEnoughLabels(evalLabels)) {
+  const trainPositives = trainLabels.filter((label) => label.positive).length
+  // 候補を作る例にも、好きと好きでないの両方が要る
+  const hasExamples =
+    trainPositives >= MIN_PER_CLASS && trainLabels.length - trainPositives >= MIN_PER_CLASS
+  if (fresh < MIN_NEW_LABELS || !hasEnoughLabels(evalLabels) || !hasExamples) {
     console.log({
       event: 'recommendation.learn.skip',
       labels: labels.length,

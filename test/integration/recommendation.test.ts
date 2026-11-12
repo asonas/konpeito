@@ -429,4 +429,21 @@ describe('runPreferenceLearning holdout', () => {
     expect(shown.length).toBeGreaterThan(0)
     expect(shown.filter((title) => holdout.includes(title))).toEqual([])
   })
+
+  it('judges the candidate only on the held-out items', async () => {
+    await seedLabeledItems()
+    const held = (title: string) => isHoldout(Number(title.replace('Item ', '')))
+    // 候補は評価用の記事では正しく、生成に渡した記事では逆に採点する。全件で測ると現行に負ける
+    const apis = fakeApis('NEW', (preference, title) => {
+      if (preference !== 'NEW') {
+        return 0.5
+      }
+      return liked(title) === held(title) ? 0.9 : 0.1
+    })
+    await withFetch(apis, () => runPreferenceLearning({ ...env, ...keys }, NOW))
+    const active = await env.DB.prepare(
+      "SELECT body FROM preference_versions WHERE status = 'active'",
+    ).first<{ body: string }>()
+    expect(active?.body).toBe('NEW')
+  })
 })
