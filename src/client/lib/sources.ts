@@ -18,6 +18,7 @@ export function sourceFromRoute(input: {
   onSearch: boolean
   onUnread?: boolean
   onBookmarks?: boolean
+  onRecommended?: boolean
   q?: string | undefined
   feedRef?: string | undefined
   tagRef?: string | undefined
@@ -40,6 +41,9 @@ export function sourceFromRoute(input: {
   }
   if (input.onBookmarks) {
     return { kind: 'bookmarks' }
+  }
+  if (input.onRecommended) {
+    return { kind: 'recommended' }
   }
   return { kind: 'all' }
 }
@@ -87,6 +91,8 @@ export function sourceHeading(
       return messages.sidebar.unread
     case 'bookmarks':
       return messages.sidebar.bookmarked
+    case 'recommended':
+      return messages.sidebar.recommended
     case 'all':
       switch (filter ?? 'all') {
         case 'recently-read':

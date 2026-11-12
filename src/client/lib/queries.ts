@@ -23,7 +23,8 @@ export type Tag = Bootstrap['tags'][number]
 export type Settings = Bootstrap['settings']
 
 type ItemsOk = InferResponseType<typeof api.items.$get, 200>
-export type ItemSummary = ItemsOk['items'][number]
+/** おすすめのビューでは、有効な嗜好の版での採点結果が付く */
+export type ItemSummary = ItemsOk['items'][number] & { score?: number }
 export type ItemListPage = { items: ItemSummary[]; next_cursor?: string }
 export type ItemDetail = InferResponseType<(typeof api.items)[':id']['$get'], 200>
 
@@ -50,6 +51,9 @@ export const queryKeys = {
   tokenSignIn: ['token-sign-in'] as const,
   credentials: ['credentials'] as const,
   sessions: ['sessions'] as const,
+  recommendations: ['items', 'recommended'] as const,
+  feedback: (id: number) => ['feedback', id] as const,
+  recommendationStatus: ['recommendation-status'] as const,
 }
 
 async function okJson<T>(res: {
@@ -322,4 +326,46 @@ export async function fetchSessions() {
 
 export async function signOutSession(id: string): Promise<void> {
   await okVoid(await api.sessions[':id'].$delete({ param: { id } }))
+}
+
+type RecommendationsOk = InferResponseType<typeof api.recommendations.$get, 200>
+export type RecommendationStatus = InferResponseType<typeof api.recommendation.status.$get, 200>
+export type Feedback = 'like' | 'dislike' | null
+export type ItemEventKind = 'open' | 'close' | 'like' | 'dislike' | 'clear_feedback'
+
+export async function fetchRecommendationsPage(): Promise<ItemListPage> {
+  return okJsonWith(
+    await api.recommendations.$get({ query: { limit: '50' } }),
+    (data: RecommendationsOk) => ({ items: data.items }),
+  )
+}
+
+/** ページを離れる時の送信でも届くよう`keepalive`を付ける */
+export async function postItemEvent(
+  id: number,
+  kind: ItemEventKind,
+  dwellMs?: number,
+): Promise<void> {
+  await okVoid(
+    await api.items[':id'].events.$post(
+      {
+        param: { id: String(id) },
+        json: { kind, ...(dwellMs !== undefined ? { dwell_ms: dwellMs } : {}) },
+      },
+      { init: { keepalive: true } },
+    ),
+  )
+}
+
+export async function fetchFeedback(id: number): Promise<Feedback> {
+  const body = await okJson(await api.items[':id'].feedback.$get({ param: { id: String(id) } }))
+  return body.feedback
+}
+
+export async function fetchRecommendationStatus(): Promise<RecommendationStatus> {
+  return okJson(await api.recommendation.status.$get())
+}
+
+export async function savePreference(body: string): Promise<void> {
+  await okVoid(await api.recommendation.preference.$put({ json: { body } }))
 }

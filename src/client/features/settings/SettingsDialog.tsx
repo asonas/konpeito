@@ -16,6 +16,7 @@ import { DataTab } from './tabs/DataTab.tsx'
 import { DisplayTab } from './tabs/DisplayTab.tsx'
 import { HealthTab } from './tabs/HealthTab.tsx'
 import { PasskeysTab } from './tabs/PasskeysTab.tsx'
+import { RecommendationTab } from './tabs/RecommendationTab.tsx'
 import { SessionsTab } from './tabs/SessionsTab.tsx'
 import { StorageTab } from './tabs/StorageTab.tsx'
 import { TokensTab } from './tabs/TokensTab.tsx'
@@ -101,6 +102,9 @@ export function SettingsDialog(props: {
               </TabPanel>
               <TabPanel value="health" className={panelClassName}>
                 <HealthTab />
+              </TabPanel>
+              <TabPanel value="recommendation" className={panelClassName}>
+                <RecommendationTab />
               </TabPanel>
               <TabPanel value="passkeys" className={panelClassName}>
                 <PasskeysTab userHandle={props.settings.user_handle} />

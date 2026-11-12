@@ -61,6 +61,7 @@ export const ja: Messages = {
     allArticles: 'すべての記事',
     unread: '未読の記事',
     bookmarked: 'ブックマークした記事',
+    recommended: 'おすすめ',
     uncategorized: '未分類',
     emptyFeeds: 'フィードはまだありません',
     gone: '削除済み',
@@ -76,6 +77,8 @@ export const ja: Messages = {
     emptySearch: (query: string) => `「${query}」に一致する記事はありません`,
     emptyUnread: '未読の記事はありません',
     emptyBookmarks: 'ブックマークした記事はありません',
+    emptyRecommended: 'おすすめはまだありません。設定の「おすすめ」で嗜好を書いてください',
+    matchScore: (score: number) => `一致度 ${Math.round(score * 100)}%`,
     emptyRecentlyRead: '最近読んだ記事はありません',
     emptyUpdated: '更新された記事はありません',
     emptyDefault: '記事はありません',
@@ -88,6 +91,8 @@ export const ja: Messages = {
     actions: '記事の操作',
     bookmark: 'ブックマーク',
     unbookmark: 'ブックマークを外す',
+    like: 'こういう記事を増やす',
+    dislike: 'こういう記事を減らす',
     markRead: '既読にする',
     markUnread: '未読へ戻す',
     showFull: '全文を表示',
@@ -233,6 +238,7 @@ export const ja: Messages = {
       passkeys: 'パスキー',
       sessions: 'ログイン中の端末',
       tokens: 'アクセストークン',
+      recommendation: 'おすすめ',
     },
     display: {
       title: '表示',
@@ -340,6 +346,24 @@ export const ja: Messages = {
         'この端末からログアウトします。続けるには、もう一度ログインしてください。',
       signOutOtherBody: (name: string) =>
         `「${name}」をログアウトさせます。その端末では、もう一度ログインが必要になります。`,
+    },
+    recommendation: {
+      title: 'おすすめ',
+      description:
+        'Jevが新着記事を嗜好に照らして採点します。記事への反応から、嗜好は1日に1回書き直されます。',
+      keys: 'APIキー',
+      keyStatus: (name: string, set: boolean) => `${name}: ${set ? '設定済み' : '未設定'}`,
+      preference: '嗜好',
+      preferenceHelp: '読みたい記事と、読み飛ばしたい記事を書いてください。',
+      save: '新しい版として保存',
+      saved: '嗜好を保存しました',
+      feedback: (total: number, positive: number, negative: number) =>
+        `直近60日の反応: ${total}件（好き ${positive}件、好きでない ${negative}件）`,
+      history: '版の履歴',
+      noHistory: '版はまだありません',
+      source: { manual: '手書き', llm: '反応から書き直し' },
+      status: { active: '有効', candidate: '評価中', rejected: '却下', retired: '退役' },
+      auc: (active: string, candidate: string) => `AUC: 現行 ${active} / 候補 ${candidate}`,
     },
     tokens: {
       title: 'アクセストークン',

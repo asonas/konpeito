@@ -46,6 +46,9 @@ function emptyMessage(source: Source, filter: Filter, t: Messages): string {
   if (source.kind === 'bookmarks') {
     return t.list.emptyBookmarks
   }
+  if (source.kind === 'recommended') {
+    return t.list.emptyRecommended
+  }
   switch (filter) {
     case 'recently-read':
       return t.list.emptyRecentlyRead
@@ -338,6 +341,9 @@ function ItemRow(props: {
             <time dateTime={new Date(item.published_at * 1000).toISOString()}>
               {formatRelative(item.published_at)}
             </time>
+            {item.score !== undefined ? (
+              <span className="tabular-nums">{t.list.matchScore(item.score)}</span>
+            ) : null}
           </div>
         </div>
         {item.lead_image_url ? (

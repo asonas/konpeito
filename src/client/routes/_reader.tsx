@@ -75,6 +75,7 @@ function ReaderFromRoute() {
   const onUnread =
     pathname === '/unread' || pathname.startsWith('/unread/') || (pathname === '/' && homeUnread)
   const onBookmarks = pathname === '/bookmarks' || pathname.startsWith('/bookmarks/')
+  const onRecommended = pathname === '/recommended' || pathname.startsWith('/recommended/')
 
   const legacyItem = itemRef !== undefined && isNumericRef(itemRef)
   const itemQuery = useQuery({
@@ -129,6 +130,7 @@ function ReaderFromRoute() {
       onSearch,
       onUnread,
       onBookmarks,
+      onRecommended,
       q: search.q,
       feedRef,
       tagRef,

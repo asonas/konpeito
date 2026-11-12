@@ -13,6 +13,7 @@ export type Source =
   | { kind: 'all' }
   | { kind: 'unread' }
   | { kind: 'bookmarks' }
+  | { kind: 'recommended' }
   | { kind: 'feed'; feedId: number; publicId: string }
   | { kind: 'tag'; tagId: number; publicId: string }
   | { kind: 'search'; q: string }
@@ -63,7 +64,7 @@ export function streamFromFilter(filter: Filter | undefined): Stream {
 }
 
 export function streamFromView(source: Source, filter: Filter | undefined): Stream {
-  if (source.kind === 'unread') {
+  if (source.kind === 'unread' || source.kind === 'recommended') {
     return 'unread'
   }
   if (source.kind === 'bookmarks') {

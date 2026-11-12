@@ -2,7 +2,13 @@ import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useRef } from 'react'
 import type { Filter, SortOrder } from '../../shared/constants.ts'
 import { useHeldStreamItems } from './item-cache.ts'
-import { fetchItem, fetchItemsPage, type ItemSummary, queryKeys } from './queries.ts'
+import {
+  fetchItem,
+  fetchItemsPage,
+  fetchRecommendationsPage,
+  type ItemSummary,
+  queryKeys,
+} from './queries.ts'
 import { itemRefOf } from './refs.ts'
 import { itemsParamsFrom, type Source } from './search-params.ts'
 
@@ -21,13 +27,19 @@ export function useStreamItems(
 ): StreamItems {
   const queryClient = useQueryClient()
   const params = itemsParamsFrom(source, filter, order)
-  const queryKey = queryKeys.items(params)
+  const recommended = source.kind === 'recommended'
+  // おすすめも`['items', ...]`に置き、既読やブックマークの楽観的な更新を他の一覧と同じく受ける
+  const queryKey = recommended ? queryKeys.recommendations : queryKeys.items(params)
   const streamKey = JSON.stringify(queryKey)
 
   const query = useInfiniteQuery({
     queryKey,
-    queryFn: ({ pageParam }) =>
-      fetchItemsPage(pageParam === undefined ? params : { ...params, cursor: pageParam }),
+    queryFn: ({ pageParam }) => {
+      if (recommended) {
+        return fetchRecommendationsPage()
+      }
+      return fetchItemsPage(pageParam === undefined ? params : { ...params, cursor: pageParam })
+    },
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (last) => last.next_cursor,
     enabled: source.kind !== 'missing',

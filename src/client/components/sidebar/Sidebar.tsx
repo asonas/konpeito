@@ -320,6 +320,11 @@ export function Sidebar(props: {
           {sourceRow({ kind: 'bookmarks' }, <span>{t.sidebar.bookmarked}</span>, {
             search: orderOnlySearch(props.search),
           })}
+          {props.readOnly
+            ? null
+            : sourceRow({ kind: 'recommended' }, <span>{t.sidebar.recommended}</span>, {
+                search: orderOnlySearch(props.search),
+              })}
         </div>
         <ul className="mt-4 flex flex-col gap-2">
           {props.tags.map((tag) => {

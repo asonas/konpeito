@@ -243,6 +243,15 @@ export function ReaderApp(props: {
   }
 
   async function markVisibleRead() {
+    // おすすめは未読の一部だけを並べるので、ストリーム全体ではなく表示中の記事だけを既読にする
+    if (props.source.kind === 'recommended') {
+      const ids = items.filter((item) => !item.is_read).map((item) => item.id)
+      if (ids.length > 0) {
+        mutations.setRead(ids, true)
+      }
+      notify(t.article.markedAllRead)
+      return
+    }
     const body: Parameters<typeof mutations.markAllRead>[0] = {
       stream: streamFromView(props.source, props.filter),
       before: Math.floor(Date.now() / 1000),
@@ -532,6 +541,7 @@ export function ReaderApp(props: {
               ? { backLink: sourceLink(props.source, search, settings.home_unread) }
               : {})}
             articleRef={articleRef}
+            recordReading={!readOnly}
             onToggleRead={toggleRead}
             onToggleBookmark={toggleBookmark}
             fullContent={fullContent}

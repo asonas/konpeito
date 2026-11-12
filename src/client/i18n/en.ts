@@ -63,6 +63,7 @@ export const en = {
     allArticles: 'All articles',
     unread: 'Unread',
     bookmarked: 'Bookmarked',
+    recommended: 'Recommended',
     uncategorized: 'Uncategorized',
     emptyFeeds: 'No feeds yet',
     gone: 'Removed',
@@ -78,6 +79,9 @@ export const en = {
     emptySearch: (query: string) => `No articles match “${query}”`,
     emptyUnread: 'No unread articles',
     emptyBookmarks: 'No bookmarked articles',
+    emptyRecommended:
+      'No recommendations yet. Write your preference in Settings > Recommendations.',
+    matchScore: (score: number) => `Match ${Math.round(score * 100)}%`,
     emptyRecentlyRead: 'No recently read articles',
     emptyUpdated: 'No updated articles',
     emptyDefault: 'No articles',
@@ -90,6 +94,8 @@ export const en = {
     actions: 'Article actions',
     bookmark: 'Bookmark',
     unbookmark: 'Remove bookmark',
+    like: 'More like this',
+    dislike: 'Less like this',
     markRead: 'Mark as read',
     markUnread: 'Mark as unread',
     showFull: 'Show full article',
@@ -236,6 +242,7 @@ export const en = {
       passkeys: 'Passkeys',
       sessions: 'Signed-in devices',
       tokens: 'Access tokens',
+      recommendation: 'Recommendations',
     },
     display: {
       title: 'Display',
@@ -341,6 +348,29 @@ export const en = {
       signOutCurrentBody: 'You’ll be signed out on this device. Sign in again to continue.',
       signOutOtherBody: (name: string) =>
         `Sign out “${name}”? That device will need to sign in again.`,
+    },
+    recommendation: {
+      title: 'Recommendations',
+      description:
+        'Jev scores new articles against your preference, and your reactions are used to rewrite it once a day.',
+      keys: 'API keys',
+      keyStatus: (name: string, set: boolean) => `${name}: ${set ? 'set' : 'not set'}`,
+      preference: 'Preference',
+      preferenceHelp: 'Describe what you want to read and what you want to skip.',
+      save: 'Save as a new version',
+      saved: 'Saved the preference',
+      feedback: (total: number, positive: number, negative: number) =>
+        `Feedback from the last 60 days: ${total} (${positive} liked, ${negative} disliked)`,
+      history: 'Versions',
+      noHistory: 'No versions yet',
+      source: { manual: 'Written by you', llm: 'Rewritten from feedback' },
+      status: {
+        active: 'Active',
+        candidate: 'Evaluating',
+        rejected: 'Rejected',
+        retired: 'Retired',
+      },
+      auc: (active: string, candidate: string) => `AUC: active ${active} / candidate ${candidate}`,
     },
     tokens: {
       title: 'Access tokens',

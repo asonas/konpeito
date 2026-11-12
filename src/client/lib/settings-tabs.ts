@@ -3,6 +3,7 @@ export const SETTINGS_TABS = [
   'data',
   'storage',
   'health',
+  'recommendation',
   'passkeys',
   'sessions',
   'tokens',

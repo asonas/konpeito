@@ -6,12 +6,14 @@ export type ReaderHref =
   | { to: '/items'; search: ReaderSearch }
   | { to: '/unread'; search: ReaderSearch }
   | { to: '/bookmarks'; search: ReaderSearch }
+  | { to: '/recommended'; search: ReaderSearch }
   | { to: '/feeds/$feedId'; params: { feedId: string }; search: ReaderSearch }
   | { to: '/tags/$tagId'; params: { tagId: string }; search: ReaderSearch }
   | { to: '/search'; search: ReaderSearch }
   | { to: '/items/$itemId'; params: { itemId: string }; search: ReaderSearch }
   | { to: '/unread/items/$itemId'; params: { itemId: string }; search: ReaderSearch }
   | { to: '/bookmarks/items/$itemId'; params: { itemId: string }; search: ReaderSearch }
+  | { to: '/recommended/items/$itemId'; params: { itemId: string }; search: ReaderSearch }
   | {
       to: '/feeds/$feedId/items/$itemId'
       params: { feedId: string; itemId: string }
@@ -60,6 +62,9 @@ export function sourceLink(source: Source, search: ReaderSearch, homeUnread = fa
   if (source.kind === 'bookmarks') {
     return { to: '/bookmarks', search: next }
   }
+  if (source.kind === 'recommended') {
+    return { to: '/recommended', search: next }
+  }
   if (homeUnread) {
     return { to: '/items', search: next }
   }
@@ -91,6 +96,9 @@ export function itemLink(source: Source, itemRef: string, search: ReaderSearch):
   }
   if (source.kind === 'bookmarks') {
     return { to: '/bookmarks/items/$itemId', params: { itemId: id }, search: next }
+  }
+  if (source.kind === 'recommended') {
+    return { to: '/recommended/items/$itemId', params: { itemId: id }, search: next }
   }
   return { to: '/items/$itemId', params: { itemId: id }, search: next }
 }

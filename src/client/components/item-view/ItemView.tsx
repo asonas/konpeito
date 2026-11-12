@@ -25,6 +25,7 @@ import { ColumnHeader, useScrolled } from '../ui/column-header.tsx'
 import { ExternalIconLink, IconLink } from '../ui/icon-button.tsx'
 import { ImageLightbox } from '../ui/lightbox.tsx'
 import { AppTooltip } from '../ui/tooltip.tsx'
+import { FeedbackButtons, useReadingSession } from './ReadingFeedback.tsx'
 
 export function ItemView(props: {
   itemRef: string | undefined
@@ -37,6 +38,8 @@ export function ItemView(props: {
   onNext: () => void
   hasNext: boolean
   articleRef: RefObject<HTMLElement | null>
+  /** 開いた記録と高評価・低評価のボタンを有効にする。デモでは書き込めないので切る */
+  recordReading: boolean
 }) {
   const t = useMessages()
   const [lightbox, setLightbox] = useState<string | null>(null)
@@ -48,6 +51,7 @@ export function ItemView(props: {
     enabled: props.itemRef !== undefined,
   })
   const item = query.data
+  useReadingSession(item?.id, props.recordReading)
 
   if (props.itemRef === undefined) {
     if (props.missing) {
@@ -145,6 +149,7 @@ export function ItemView(props: {
               <Bookmark className={cn('h-4 w-4', item.is_bookmarked && 'fill-current')} />
             </Button>
           </AppTooltip>
+          {props.recordReading ? <FeedbackButtons itemId={item.id} /> : null}
           {item.url ? (
             <AppTooltip label={fullContentLabel}>
               <Button
