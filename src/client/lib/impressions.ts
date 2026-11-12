@@ -14,6 +14,7 @@ export function useImpressionTracker(
   const observer = useRef<IntersectionObserver | null>(null)
   const idsByNode = useRef(new WeakMap<Element, number>())
   const sent = useRef(new Set<number>())
+  const retried = useRef(new Set<number>())
 
   // 一覧は別のビューへ移っても同じ行の要素を使い回すので、無効になった時点で観察をやめる
   useEffect(() => {
@@ -53,11 +54,13 @@ export function useImpressionTracker(
             }
             sent.current.add(id)
             self.unobserve(entry.target)
-            const target = entry.target
             postItemEvent(id, 'impression').catch(() => {
-              // 記録は推薦の学習にだけ使うので一覧の操作は止めず、次に表示された時に送り直す
-              sent.current.delete(id)
-              observer.current?.observe(target)
+              // 記録は推薦の学習にだけ使うので、一覧の操作は止めない
+              // 送り直しは、行がもう一度描画された時の1回だけにする。失敗が続く間に送り続けないため
+              if (!retried.current.has(id)) {
+                retried.current.add(id)
+                sent.current.delete(id)
+              }
             })
           }
         },
