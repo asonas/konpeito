@@ -4,11 +4,15 @@ import { type ApiDeps, type ApiFailure, postJson } from './http.ts'
 export const JEV_ENDPOINT = 'https://api.typesafe.ai/v1/systemone'
 /** `jev-latest`は新しいリリースで指す先が変わり、版ごとの評価結果を比べられなくなるので版数で固定する */
 export const DEFAULT_JEV_MODEL = 'jev-1.14.0'
-/** 1リクエストのstateと質問の合計が64kトークンに収まるよう、余裕を持たせた件数 */
-export const JEV_BATCH_SIZE = 40
+/**
+ * Jevの上限は、stateと1つの質問で32kトークン、stateと全質問で64kトークン
+ * 嗜好文（最大4000文字）と記事の文字数の上限から、1文字1トークンと見積もっても両方に収まる件数
+ */
+export const JEV_BATCH_SIZE = 30
 const JEV_TIMEOUT_MS = 30_000
-const MAX_TITLE_CHARS = 300
-const MAX_SUMMARY_CHARS = 1000
+const MAX_FEED_CHARS = 100
+const MAX_TITLE_CHARS = 200
+const MAX_SUMMARY_CHARS = 300
 
 export type JevItem = {
   feed: string
@@ -33,7 +37,7 @@ export function buildJevRequest(items: readonly JevItem[], preference: string, m
     state: {
       preference,
       items: items.map((item) => ({
-        feed: clip(item.feed, MAX_TITLE_CHARS),
+        feed: clip(item.feed, MAX_FEED_CHARS),
         title: clip(item.title, MAX_TITLE_CHARS),
         summary: clip(item.summary, MAX_SUMMARY_CHARS),
       })),

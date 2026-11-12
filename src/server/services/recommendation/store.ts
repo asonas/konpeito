@@ -256,9 +256,17 @@ WHERE created_at >= ? ORDER BY created_at, id`,
   }
 }
 
+/**
+ * 最後に嗜好が確定した時刻。手書きの保存と、評価を終えた候補を数える
+ * APIの失敗で評価できなかった候補は数えず、次の実行で同じラベルから学習し直せるようにする
+ */
 export async function lastLearningAt(db: D1Database): Promise<number> {
   const row = await db
-    .prepare('SELECT MAX(created_at) AS at FROM preference_versions')
+    .prepare(
+      `SELECT MAX(created_at) AS at FROM preference_versions
+WHERE source = 'manual'
+   OR (eval_json IS NOT NULL AND json_extract(eval_json, '$.error') IS NULL)`,
+    )
     .first<{ at: number | null }>()
   return row?.at ?? 0
 }
@@ -280,20 +288,35 @@ VALUES (?, 'llm', ?, 'candidate', ?, ?) RETURNING id`,
   return row.id
 }
 
-/** 有効な版は1件だけなので、新しい版を有効にする前に今の版を退かせる */
+/**
+ * 候補は`comparedWith`に勝っただけなので、評価の間に別の版が有効になっていたら切り替えずに却下する
+ * 有効な版は1件だけなので、候補を有効にする前に比較元を退かせる
+ */
 export function activateStatements(
   db: D1Database,
   versionId: number,
-  evalJson: string | null,
+  comparedWith: number,
+  evaluation: Record<string, unknown>,
   now: number,
 ): D1PreparedStatement[] {
+  const evalJson = JSON.stringify(evaluation)
   return [
-    db.prepare("UPDATE preference_versions SET status = 'retired' WHERE status = 'active'"),
     db
       .prepare(
-        "UPDATE preference_versions SET status = 'active', activated_at = ?, eval_json = ? WHERE id = ?",
+        "UPDATE preference_versions SET status = 'retired' WHERE id = ? AND status = 'active'",
+      )
+      .bind(comparedWith),
+    db
+      .prepare(
+        `UPDATE preference_versions SET status = 'active', activated_at = ?, eval_json = ?
+WHERE id = ? AND NOT EXISTS (SELECT 1 FROM preference_versions WHERE status = 'active')`,
       )
       .bind(now, evalJson, versionId),
+    db
+      .prepare(
+        "UPDATE preference_versions SET status = 'rejected', eval_json = ? WHERE id = ? AND status = 'candidate'",
+      )
+      .bind(JSON.stringify({ ...evaluation, superseded: true }), versionId),
   ]
 }
 

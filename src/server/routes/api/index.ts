@@ -210,13 +210,16 @@ export const api = new Hono<AppEnv>()
     return c.json({ items, version: active.id })
   })
   .get('/recommendation/status', async (c) => {
-    const [versions, labels] = await Promise.all([
+    const [active, versions, labels] = await Promise.all([
+      getActiveVersion(c.env.DB),
       listVersions(c.env.DB, 20),
       loadLabels(c.env.DB, nowSec()),
     ])
     const positives = labels.filter((label) => label.positive).length
     return c.json({
       configured: { jev: Boolean(c.env.JEV_API_KEY), openai: Boolean(c.env.OPENAI_API_KEY) },
+      // 却下された候補が続くと、有効な版が直近の履歴から外れるので別に返す
+      active: active === null ? null : { id: active.id, body: active.body },
       versions: versions.map((version) => ({
         ...version,
         eval: version.eval_json === null ? null : (JSON.parse(version.eval_json) as unknown),

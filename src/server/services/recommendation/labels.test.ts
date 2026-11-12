@@ -48,4 +48,13 @@ describe('deriveLabels', () => {
       { itemId: 4, positive: true, weight: 0.5, at: shown + 40 },
     ])
   })
+
+  it('dates a label that a cleared rating changed at the time of clearing', () => {
+    const labels = deriveLabels(
+      [event(1, 'dislike', 10), event(1, 'clear_feedback', 500)],
+      [{ id: 1, starred_at: 5 }],
+      NOW,
+    )
+    expect(labels).toEqual([{ itemId: 1, positive: true, weight: 1, at: 500 }])
+  })
 })

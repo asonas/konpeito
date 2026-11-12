@@ -91,16 +91,28 @@ export function deriveLabels(
       })
       continue
     }
+    // 評価を取り消した記事は、取り消した時点でラベルが変わったと見なす
+    const clearedAt = explicit?.at ?? 0
     const starredAt = starred.get(itemId)
     if (starredAt !== undefined) {
-      labels.push({ itemId, positive: true, weight: STRONG_WEIGHT, at: starredAt })
+      labels.push({
+        itemId,
+        positive: true,
+        weight: STRONG_WEIGHT,
+        at: Math.max(starredAt, clearedAt),
+      })
       continue
     }
     if (s === undefined) {
       continue
     }
     if (s.dwellMs >= DWELL_THRESHOLD_MS) {
-      labels.push({ itemId, positive: true, weight: WEAK_WEIGHT, at: s.lastClose })
+      labels.push({
+        itemId,
+        positive: true,
+        weight: WEAK_WEIGHT,
+        at: Math.max(s.lastClose, clearedAt),
+      })
       continue
     }
     if (!s.opened && s.firstImpression !== null && s.firstImpression + UNOPENED_AFTER <= now) {
@@ -108,7 +120,7 @@ export function deriveLabels(
         itemId,
         positive: false,
         weight: WEAK_WEIGHT,
-        at: s.firstImpression + UNOPENED_AFTER,
+        at: Math.max(s.firstImpression + UNOPENED_AFTER, clearedAt),
       })
     }
   }

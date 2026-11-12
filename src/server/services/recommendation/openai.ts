@@ -38,6 +38,8 @@ export function buildProposalRequest(
 ) {
   return {
     model,
+    // 既定ではResponses APIが応答を30日保存する。会話を続けないので保存させない
+    store: false,
     instructions: INSTRUCTIONS,
     input: JSON.stringify({ current_preference: current, examples }),
     text: {

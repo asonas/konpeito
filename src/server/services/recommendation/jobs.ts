@@ -12,7 +12,6 @@ import {
   activateStatements,
   getActiveVersion,
   getScorableItems,
-  getScores,
   insertCandidate,
   lastLearningAt,
   listUnscoredItems,
@@ -163,64 +162,80 @@ export async function runPreferenceLearning(env: Env, now: number): Promise<void
     parentId: active.id,
     now,
   })
+  try {
+    await evaluateCandidate(env, now, {
+      jev,
+      openaiModel: openai.model,
+      active,
+      candidate: { id: candidateId, body: proposal.preference },
+      labels,
+      items,
+    })
+  } catch (error) {
+    // 候補を`candidate`のまま残すと、評価が終わっていない版が履歴に残り続ける
+    await rejectStatement(env.DB, candidateId, JSON.stringify({ error: String(error) })).run()
+    throw error
+  }
+}
 
+async function evaluateCandidate(
+  env: Env,
+  now: number,
+  input: {
+    jev: JevDeps
+    openaiModel: string
+    active: { id: number; body: string }
+    candidate: { id: number; body: string }
+    labels: readonly Label[]
+    items: ReadonlyMap<number, ScorableItem>
+  },
+): Promise<void> {
+  const { jev, active, candidate, labels } = input
   const labeledItems = labels.flatMap((label) => {
-    const item = items.get(label.itemId)
+    const item = input.items.get(label.itemId)
     return item === undefined ? [] : [item]
   })
-  const activeScores = await getScores(
-    env.DB,
-    active.id,
-    labeledItems.map((item) => item.id),
-  )
-  const missing = labeledItems.filter((item) => !activeScores.has(item.id))
-  const activeRun = await scoreInBatches(missing, active.body, jev)
+  // 保存済みのスコアは採点した時の記事の内容やバッチの組み合わせが違うので使わず、同じ入力で両方を採点し直す
+  const activeRun = await scoreInBatches(labeledItems, active.body, jev)
   const candidateRun =
     activeRun.failure === null
-      ? await scoreInBatches(labeledItems, proposal.preference, jev)
+      ? await scoreInBatches(labeledItems, candidate.body, jev)
       : { scores: new Map<number, number>(), failure: activeRun.failure }
-  await env.DB.batch([
-    ...saveScoresStatements(env.DB, active.id, activeRun.scores, now),
-    ...saveScoresStatements(env.DB, candidateId, candidateRun.scores, now),
-  ])
   if (candidateRun.failure !== null) {
     await rejectStatement(
       env.DB,
-      candidateId,
+      candidate.id,
       JSON.stringify({ error: candidateRun.failure }),
     ).run()
     console.log({ event: 'recommendation.learn.score_failed', failure: candidateRun.failure })
     return
   }
 
-  for (const [id, score] of activeRun.scores) {
-    activeScores.set(id, score)
-  }
   const samples = (scores: ReadonlyMap<number, number>) =>
     labels.flatMap((label) => {
       const score = scores.get(label.itemId)
       return score === undefined ? [] : [{ score, positive: label.positive, weight: label.weight }]
     })
-  const aucActive = weightedAuc(samples(activeScores))
+  const aucActive = weightedAuc(samples(activeRun.scores))
   const aucCandidate = weightedAuc(samples(candidateRun.scores))
   const adopted = shouldAdopt(aucActive, aucCandidate)
-  const evalJson = JSON.stringify({
+  const evaluation = {
     compared_with: active.id,
     labels: labels.length,
     positives: labels.filter((label) => label.positive).length,
     negatives: labels.filter((label) => !label.positive).length,
     auc_active: aucActive,
     auc_candidate: aucCandidate,
-    model: { jev: jev.model, openai: openai.model },
-  })
+    model: { jev: jev.model, openai: input.openaiModel },
+  }
   if (adopted) {
-    await env.DB.batch(activateStatements(env.DB, candidateId, evalJson, now))
+    await env.DB.batch(activateStatements(env.DB, candidate.id, active.id, evaluation, now))
   } else {
-    await rejectStatement(env.DB, candidateId, evalJson).run()
+    await rejectStatement(env.DB, candidate.id, JSON.stringify(evaluation)).run()
   }
   console.log({
     event: 'recommendation.learn',
-    candidate: candidateId,
+    candidate: candidate.id,
     adopted,
     auc_active: aucActive,
     auc_candidate: aucCandidate,

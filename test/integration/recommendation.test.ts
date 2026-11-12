@@ -5,6 +5,7 @@ import {
   runPreferenceLearning,
   scorePendingItems,
 } from '../../src/server/services/recommendation/jobs.ts'
+import { createManualVersion } from '../../src/server/services/recommendation/store.ts'
 import { ORIGIN, sessionCookie, withFetch } from '../helpers.ts'
 
 const NOW = 1_800_000_000
@@ -319,5 +320,64 @@ describe('PUT /recommendation/preference', () => {
       { body: 'OLD', source: 'manual', status: 'retired', parent_id: null },
       { body: 'Ruby and keyboards', source: 'manual', status: 'active', parent_id: 1 },
     ])
+  })
+})
+
+describe('runPreferenceLearning edge cases', () => {
+  it('does not replace a preference saved while the candidate was being evaluated', async () => {
+    await seedLabeledItems()
+    const apis = fakeApis('NEW', (preference, title) =>
+      preference === 'NEW' ? (liked(title) ? 0.9 : 0.1) : 0.5,
+    )
+    let saved = false
+    await withFetch(
+      async (input, init) => {
+        if (!saved && String(input).startsWith('https://api.openai.com/')) {
+          saved = true
+          await createManualVersion(env.DB, 'SAVED MEANWHILE', NOW)
+        }
+        return apis(input, init)
+      },
+      () => runPreferenceLearning({ ...env, ...keys }, NOW),
+    )
+    const versions = await env.DB.prepare(
+      'SELECT body, status FROM preference_versions ORDER BY id',
+    ).all<{ body: string; status: string }>()
+    expect(versions.results.map((row) => [row.body, row.status])).toEqual([
+      ['OLD', 'retired'],
+      ['SAVED MEANWHILE', 'active'],
+      ['NEW', 'rejected'],
+    ])
+  })
+
+  it('retries with the same feedback after Jev fails', async () => {
+    await seedLabeledItems()
+    await withFetch(
+      async (input, init) => {
+        if (String(input).startsWith('https://api.openai.com/')) {
+          return fakeApis('NEW', () => 0.5)(input, init)
+        }
+        return new Response('slow down', { status: 429 })
+      },
+      () => runPreferenceLearning({ ...env, ...keys }, NOW),
+    )
+    let openAiCalls = 0
+    const apis = fakeApis('NEWER', (preference, title) =>
+      preference === 'NEWER' ? (liked(title) ? 0.9 : 0.1) : 0.5,
+    )
+    await withFetch(
+      async (input, init) => {
+        if (String(input).startsWith('https://api.openai.com/')) {
+          openAiCalls += 1
+        }
+        return apis(input, init)
+      },
+      () => runPreferenceLearning({ ...env, ...keys }, NOW + DAY),
+    )
+    expect(openAiCalls).toBe(1)
+    const active = await env.DB.prepare(
+      "SELECT body FROM preference_versions WHERE status = 'active'",
+    ).first<{ body: string }>()
+    expect(active?.body).toBe('NEWER')
   })
 })
