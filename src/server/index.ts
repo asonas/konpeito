@@ -9,6 +9,20 @@ function loadDemo(): Promise<Hono<AppEnv>> {
   return demoApp
 }
 
+type RecommendationJobs = typeof import('./services/recommendation/jobs.ts')
+
+/** おすすめは外部APIに依存する付加機能なので、失敗してもフィードの取得と保守を止めない */
+async function runRecommendation(
+  step: string,
+  run: (jobs: RecommendationJobs) => Promise<void>,
+): Promise<void> {
+  try {
+    await run(await import('./services/recommendation/jobs.ts'))
+  } catch (error) {
+    console.error({ event: 'recommendation.error', step, message: String(error) })
+  }
+}
+
 export default {
   fetch(request, env, ctx) {
     if (env.DEMO_MODE === '1') {
@@ -29,6 +43,7 @@ export default {
     const now = nowSec()
     if (controller.cron === '*/5 * * * *') {
       await jobs.dispatchDueFeeds(env, now)
+      await runRecommendation('score', (r) => r.scorePendingItems(env, now))
       return
     }
     await jobs.backfillPublicIds(env.DB)
