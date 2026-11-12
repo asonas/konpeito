@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef } from 'react'
 import { postItemEvent } from './queries.ts'
 
+const VISIBLE_RATIO = 0.5
+
 /**
  * 一覧の行が画面に半分以上入った時に、その記事の表示を1回だけ記録する
  * 仮想スクロールが先読みして描画しただけの行は数えない
@@ -41,17 +43,25 @@ export function useImpressionTracker(
         (entries, self) => {
           for (const entry of entries) {
             const id = idsByNode.current.get(entry.target)
-            if (!entry.isIntersecting || id === undefined || sent.current.has(id)) {
+            // `threshold`は通知する境界にすぎず、観察を始めた直後は半分未満でも`isIntersecting`で届く
+            if (
+              entry.intersectionRatio < VISIBLE_RATIO ||
+              id === undefined ||
+              sent.current.has(id)
+            ) {
               continue
             }
             sent.current.add(id)
             self.unobserve(entry.target)
+            const target = entry.target
             postItemEvent(id, 'impression').catch(() => {
-              // 記録は推薦の学習にだけ使うので、失敗しても一覧の操作は止めない
+              // 記録は推薦の学習にだけ使うので一覧の操作は止めず、次に表示された時に送り直す
+              sent.current.delete(id)
+              observer.current?.observe(target)
             })
           }
         },
-        { threshold: 0.5 },
+        { threshold: VISIBLE_RATIO },
       )
       idsByNode.current.set(node, itemId)
       observer.current.observe(node)
