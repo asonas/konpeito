@@ -136,6 +136,7 @@ describe('recommendation API', () => {
     ['POST', '/items/1/events', JSON.stringify({ kind: 'like' })],
     ['GET', '/items/1/feedback', undefined],
     ['GET', '/recommendation/status', undefined],
+    ['GET', '/stats/reading', undefined],
     ['PUT', '/recommendation/preference', JSON.stringify({ body: 'x' })],
   ])('rejects %s %s without a session', async (method, path, body) => {
     await seedFeed()
@@ -475,5 +476,93 @@ describe('runPreferenceLearning holdout', () => {
       () => runPreferenceLearning({ ...env, ...keys }, NOW),
     )
     expect(reactions.filter((reaction) => reaction === 'disliked').length).toBeGreaterThanOrEqual(5)
+  })
+})
+
+describe('reading signals', () => {
+  async function seedEvent(
+    itemId: number,
+    kind: string,
+    createdAt: number,
+    dwellMs: number | null = null,
+  ): Promise<void> {
+    await env.DB.prepare(
+      'INSERT INTO item_events (item_id, kind, dwell_ms, created_at) VALUES (?, ?, ?, ?)',
+    )
+      .bind(itemId, kind, dwellMs, createdAt)
+      .run()
+  }
+
+  it('records link clicks and original opens without turning them into labels', async () => {
+    await seedFeed()
+    await seedItem(1)
+    const cookie = await sessionCookie()
+    for (const kind of ['link_click', 'open_original', 'open_original']) {
+      const res = await api('/items/1/events', {
+        method: 'POST',
+        cookie,
+        body: JSON.stringify({ kind }),
+      })
+      expect(res.status).toBe(200)
+    }
+    const rows = await env.DB.prepare(
+      'SELECT kind, COUNT(*) AS n FROM item_events GROUP BY kind ORDER BY kind',
+    ).all()
+    expect(rows.results).toEqual([
+      { kind: 'link_click', n: 1 },
+      { kind: 'open_original', n: 2 },
+    ])
+    const status = await api('/recommendation/status', { cookie })
+    const body = (await status.json()) as { labels: { total: number } }
+    expect(body.labels.total).toBe(0)
+  })
+
+  it('aggregates the events of the requested period per feed', async () => {
+    await seedFeed()
+    await seedItem(1)
+    await seedItem(2)
+    const now = Math.floor(Date.now() / 1000)
+    const recent = now - DAY
+    // 同じ記事を2回開いても開封は1。閲覧時間は区切って届いた分を足す
+    await seedEvent(1, 'impression', recent)
+    await seedEvent(1, 'open', recent)
+    await seedEvent(1, 'open', recent + 100)
+    await seedEvent(1, 'close', recent + 50, 40_000)
+    await seedEvent(1, 'close', recent + 150, 5_000)
+    await seedEvent(1, 'open_original', recent + 10)
+    await seedEvent(1, 'open_original', recent + 20)
+    await seedEvent(1, 'link_click', recent + 30)
+    // 取り消した評価は数えず、付け直した評価は最後の1件だけを数える
+    await seedEvent(1, 'like', recent + 40)
+    await seedEvent(1, 'clear_feedback', recent + 41)
+    await seedEvent(2, 'impression', recent)
+    await seedEvent(2, 'dislike', recent + 40)
+    await seedEvent(2, 'like', recent + 41)
+    // 7日の期間からは外れ、30日の期間には入る
+    await seedEvent(2, 'open', now - DAY * 8)
+    await seedEvent(2, 'close', now - DAY * 8, 9_000)
+
+    const cookie = await sessionCookie()
+    const week = await api('/stats/reading?days=7', { cookie })
+    expect(week.status).toBe(200)
+    const counts = {
+      impressions: 2,
+      opens: 1,
+      dwell_ms: 45_000,
+      original_opens: 2,
+      link_clicks: 1,
+      likes: 1,
+      dislikes: 0,
+    }
+    expect(await week.json()).toEqual({
+      days: 7,
+      totals: counts,
+      feeds: [{ feed_id: 701, title: 'Rec Feed', custom_title: null, ...counts }],
+    })
+
+    const month = await api('/stats/reading', { cookie })
+    const monthBody = (await month.json()) as { days: number; totals: typeof counts }
+    expect(monthBody.days).toBe(30)
+    expect(monthBody.totals).toEqual({ ...counts, opens: 2, dwell_ms: 54_000 })
   })
 })

@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ThumbsDown, ThumbsUp } from 'lucide-react'
 import { useEffect } from 'react'
 import { useMessages } from '../../i18n/I18nProvider.tsx'
+import { createActiveTimer } from '../../lib/active-time.ts'
 import {
   type Feedback,
   fetchFeedback,
@@ -9,17 +10,21 @@ import {
   postItemEvent,
   queryKeys,
 } from '../../lib/queries.ts'
+import { isBackgroundOpenKey, recordItemEvent } from '../../lib/reading-events.ts'
 import { Button } from '../ui/button.tsx'
 import { AppTooltip } from '../ui/tooltip.tsx'
 
-function send(id: number, kind: ItemEventKind, dwellMs?: number): void {
-  postItemEvent(id, kind, dwellMs).catch(() => {
-    // 記録は推薦の学習にだけ使うので、失敗しても読書の操作は止めない
-  })
-}
+const ACTIVITY_EVENTS = [
+  'pointerdown',
+  'pointermove',
+  'keydown',
+  'wheel',
+  'touchstart',
+  'scroll',
+] as const
 
 /**
- * 記事を開いた事と、表示していた時間を記録する
+ * 記事を開いた事と、実際に読んでいた時間を記録する
  * 閲覧時間は、タブが隠れる・ページを離れる・記事を閉じるたびに区切って送り、サーバー側で合計する
  * 隠れたままブラウザーが終了されると`pagehide`が来ないので、隠れた時点で送っておく
  */
@@ -28,21 +33,22 @@ export function useReadingSession(itemId: number | undefined, enabled: boolean):
     if (!enabled || itemId === undefined) {
       return
     }
-    send(itemId, 'open')
-    let visibleSince: number | null = document.visibilityState === 'visible' ? Date.now() : null
+    recordItemEvent(itemId, 'open')
+    const isActive = () => document.visibilityState === 'visible' && document.hasFocus()
+    const timer = createActiveTimer(Date.now(), isActive())
     const flush = () => {
-      if (visibleSince === null) {
-        return
+      const elapsed = timer.flush(Date.now())
+      if (elapsed > 0) {
+        recordItemEvent(itemId, 'close', elapsed)
       }
-      const elapsed = Date.now() - visibleSince
-      visibleSince = null
-      send(itemId, 'close', elapsed)
     }
     const resume = () => {
-      if (document.visibilityState === 'visible') {
-        visibleSince ??= Date.now()
+      if (isActive()) {
+        timer.resume(Date.now())
       }
     }
+    const onActivity = () => timer.activity(Date.now())
+    const onBlur = () => timer.pause(Date.now())
     const onVisibility = () => {
       if (document.visibilityState === 'visible') {
         resume()
@@ -56,15 +62,43 @@ export function useReadingSession(itemId: number | undefined, enabled: boolean):
         resume()
       }
     }
+    // `scroll`はバブリングしないので、記事ペインの中のスクロールもcaptureで拾う
+    const options = { capture: true, passive: true }
+    for (const type of ACTIVITY_EVENTS) {
+      window.addEventListener(type, onActivity, options)
+    }
+    window.addEventListener('blur', onBlur)
+    window.addEventListener('focus', resume)
     document.addEventListener('visibilitychange', onVisibility)
     window.addEventListener('pagehide', flush)
     window.addEventListener('pageshow', onPageShow)
     return () => {
+      for (const type of ACTIVITY_EVENTS) {
+        window.removeEventListener(type, onActivity, options)
+      }
+      window.removeEventListener('blur', onBlur)
+      window.removeEventListener('focus', resume)
       document.removeEventListener('visibilitychange', onVisibility)
       window.removeEventListener('pagehide', flush)
       window.removeEventListener('pageshow', onPageShow)
       flush()
     }
+  }, [enabled, itemId])
+}
+
+/** Feedly Background Tabのキー入力で元記事が開かれた事を記録する。条件は`isBackgroundOpenKey`を参照 */
+export function useBackgroundOpenSignal(itemId: number | undefined, enabled: boolean): void {
+  useEffect(() => {
+    if (!enabled || itemId === undefined) {
+      return
+    }
+    const onKeyPress = (event: KeyboardEvent) => {
+      if (isBackgroundOpenKey(event)) {
+        recordItemEvent(itemId, 'open_original')
+      }
+    }
+    window.addEventListener('keypress', onKeyPress)
+    return () => window.removeEventListener('keypress', onKeyPress)
   }, [enabled, itemId])
 }
 

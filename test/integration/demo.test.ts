@@ -209,6 +209,7 @@ describe('demo mode', () => {
     }
     for (const path of [
       '/api/v1/storage',
+      '/api/v1/stats/reading',
       '/api/v1/credentials',
       '/api/v1/sessions',
       '/api/v1/opml/export',

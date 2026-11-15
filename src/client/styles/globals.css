@@ -390,6 +390,128 @@ button:not(:disabled),
   animation: 280ms cubic-bezier(0.2, 0, 0, 1) 60ms both login-slide-in;
 }
 
+.stats-table-wrapper {
+  overflow: auto;
+  max-inline-size: 100%;
+  max-block-size: 80dvh;
+  container-type: inline-size;
+  border: 1px solid var(--line);
+  border-radius: 0.375rem;
+}
+
+.stats-table {
+  inline-size: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 0.875rem;
+}
+
+.stats-table caption {
+  padding: 0.75rem;
+  font-weight: 700;
+  text-align: start;
+}
+
+.stats-table th,
+.stats-table td {
+  padding: 0.5rem 0.625rem;
+  border-block-end: 1px solid var(--line);
+  white-space: nowrap;
+}
+
+.stats-table td,
+.stats-table thead th:not(:first-child) {
+  text-align: end;
+  font-variant-numeric: tabular-nums;
+}
+
+.stats-table thead {
+  position: sticky;
+  inset-block-start: 0;
+  /* 横に固定した行見出しより手前に出す */
+  z-index: 1;
+}
+
+.stats-table thead th {
+  background: var(--surface-shell);
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.stats-table thead th:first-child,
+.stats-table tbody th {
+  text-align: start;
+}
+
+.stats-table tbody th {
+  position: sticky;
+  inset-inline-start: 0;
+  max-inline-size: 14rem;
+  overflow: hidden;
+  /* スクロールで下をくぐるセルを隠すのに、不透明な背景が要る */
+  background: var(--surface-canvas);
+  font-weight: 500;
+  text-overflow: ellipsis;
+}
+
+.stats-bar {
+  display: block;
+  block-size: 0.25rem;
+  margin-block-start: 0.25rem;
+  margin-inline-start: auto;
+  border-radius: 0.25rem;
+  background: var(--accent-mark);
+}
+
+/* 幅が足りない時は、1フィードを1枚のカードにして列見出しを各セルに付ける */
+@container (width < 44rem) {
+  .stats-table,
+  .stats-table tbody,
+  .stats-table tr,
+  .stats-table th,
+  .stats-table td {
+    display: block;
+  }
+
+  .stats-table thead {
+    display: none;
+  }
+
+  .stats-table tbody th {
+    inset-block-start: 0;
+    z-index: 2;
+    max-inline-size: none;
+    background: var(--surface-shell);
+    white-space: normal;
+  }
+
+  .stats-table caption {
+    display: block;
+  }
+
+  .stats-table td {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    column-gap: 0.75rem;
+    border-block-end: 0;
+    white-space: normal;
+  }
+
+  .stats-table td::before {
+    content: attr(data-label);
+    color: var(--text-muted);
+    text-align: start;
+  }
+
+  .stats-table tr {
+    border-block-end: 1px solid var(--line);
+  }
+
+  .stats-bar {
+    grid-column: 1 / -1;
+  }
+}
+
 @keyframes login-slide-out {
   to {
     opacity: 0;

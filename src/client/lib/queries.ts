@@ -3,6 +3,7 @@ import { redirect } from '@tanstack/react-router'
 import type { InferResponseType } from 'hono/client'
 import type { SettingsPatch, SortOrder, Stream } from '../../shared/constants.ts'
 import type { ApiErrorBody } from '../../shared/errors.ts'
+import type { ITEM_EVENT_KINDS, READING_STATS_DAYS } from '../../shared/schemas.ts'
 import { applyLocale, loadCatalog } from '../i18n/locale.ts'
 import { api } from './api.ts'
 import { withDemoBootstrap } from './demo/index.ts'
@@ -55,6 +56,7 @@ export const queryKeys = {
   recommendations: ['items', 'recommended'] as const,
   feedback: (id: number) => ['feedback', id] as const,
   recommendationStatus: ['recommendation-status'] as const,
+  readingStats: (days: string) => ['reading-stats', days] as const,
 }
 
 async function okJson<T>(res: {
@@ -332,7 +334,13 @@ export async function signOutSession(id: string): Promise<void> {
 type RecommendationsOk = InferResponseType<typeof api.recommendations.$get, 200>
 export type RecommendationStatus = InferResponseType<typeof api.recommendation.status.$get, 200>
 export type Feedback = 'like' | 'dislike' | null
-export type ItemEventKind = 'impression' | 'open' | 'close' | 'like' | 'dislike' | 'clear_feedback'
+export type ItemEventKind = (typeof ITEM_EVENT_KINDS)[number]
+export type ReadingStats = InferResponseType<typeof api.stats.reading.$get, 200>
+export type ReadingStatsDays = (typeof READING_STATS_DAYS)[number]
+
+export async function fetchReadingStats(days: ReadingStatsDays): Promise<ReadingStats> {
+  return okJson(await api.stats.reading.$get({ query: { days } }))
+}
 
 export async function fetchRecommendationsPage(): Promise<ItemListPage> {
   return okJsonWith(

@@ -17,6 +17,7 @@ import {
   patchFeedSchema,
   patchTagSchema,
   preferenceSchema,
+  readingStatsQuerySchema,
   readSchema,
   recommendationsQuerySchema,
   reorderIdsSchema,
@@ -66,6 +67,7 @@ import {
 } from '../../middleware/session.ts'
 import type { OpmlFeed } from '../../services/opml.ts'
 import { loadLabels } from '../../services/recommendation/jobs.ts'
+import { loadReadingStats } from '../../services/recommendation/stats.ts'
 import {
   createManualVersion,
   getActiveVersion,
@@ -575,6 +577,11 @@ export const api = new Hono<AppEnv>()
   .get('/health/feeds', async (c) => {
     const feeds = await listHealthFeeds(c.env.DB)
     return c.json({ feeds: feeds.results })
+  })
+  .get('/stats/reading', zv('query', readingStatsQuerySchema), async (c) => {
+    const days = Number(c.req.valid('query').days)
+    const stats = await loadReadingStats(c.env.DB, days, nowSec())
+    return c.json({ days, ...stats })
   })
   .patch('/settings', zv('json', settingsPatchSchema), async (c) => {
     const patch = c.req.valid('json')

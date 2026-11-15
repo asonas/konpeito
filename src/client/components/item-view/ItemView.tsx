@@ -18,6 +18,11 @@ import type { FullContentView } from '../../lib/full-content.ts'
 import { feedShowsLeadImage, leadImageToShow } from '../../lib/lead-image.ts'
 import type { ReaderHref } from '../../lib/links.ts'
 import { type Feed, fetchItem, queryKeys } from '../../lib/queries.ts'
+import {
+  ARTICLE_BODY_CLASS,
+  classifyArticleClick,
+  recordItemEvent,
+} from '../../lib/reading-events.ts'
 import { cn } from '../../lib/utils.ts'
 import { SafeHtml } from '../SafeHtml.tsx'
 import { Button } from '../ui/button.tsx'
@@ -25,7 +30,7 @@ import { ColumnHeader, useScrolled } from '../ui/column-header.tsx'
 import { ExternalIconLink, IconLink } from '../ui/icon-button.tsx'
 import { ImageLightbox } from '../ui/lightbox.tsx'
 import { AppTooltip } from '../ui/tooltip.tsx'
-import { FeedbackButtons, useReadingSession } from './ReadingFeedback.tsx'
+import { FeedbackButtons, useBackgroundOpenSignal, useReadingSession } from './ReadingFeedback.tsx'
 
 export function ItemView(props: {
   itemRef: string | undefined
@@ -52,6 +57,7 @@ export function ItemView(props: {
   })
   const item = query.data
   useReadingSession(item?.id, props.recordReading)
+  useBackgroundOpenSignal(item?.id, props.recordReading && Boolean(item?.url))
 
   if (props.itemRef === undefined) {
     if (props.missing) {
@@ -98,7 +104,17 @@ export function ItemView(props: {
     }
     return null
   }
+  function recordClick(event: MouseEvent<HTMLElement>) {
+    if (!props.recordReading) {
+      return
+    }
+    const kind = classifyArticleClick(event.target, event.button, item?.url ?? null)
+    if (kind !== null && item) {
+      recordItemEvent(item.id, kind)
+    }
+  }
   function onClick(event: MouseEvent<HTMLElement>) {
+    recordClick(event)
     if (handleBodyTarget(event.target) === 'image') {
       event.preventDefault()
     }
@@ -117,6 +133,8 @@ export function ItemView(props: {
       className="h-full min-w-0 flex-1 overflow-y-auto bg-canvas"
       tabIndex={-1}
       onClick={onClick}
+      // 中クリックは`click`ではなく`auxclick`で届く
+      onAuxClick={recordClick}
       onKeyDown={onKeyDown}
       onScroll={onScroll}
     >
@@ -217,7 +235,7 @@ export function ItemView(props: {
               className="mt-6 h-auto w-full max-w-full cursor-zoom-in"
             />
           ) : null}
-          <SafeHtml html={html} lang={item.language} className="article-body mt-6" />
+          <SafeHtml html={html} lang={item.language} className={`${ARTICLE_BODY_CLASS} mt-6`} />
           <div className="mt-10 flex justify-center">
             {props.hasNext ? (
               <Button variant="ghost" onClick={props.onNext}>
