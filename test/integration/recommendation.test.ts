@@ -477,3 +477,29 @@ describe('runPreferenceLearning holdout', () => {
     expect(reactions.filter((reaction) => reaction === 'disliked').length).toBeGreaterThanOrEqual(5)
   })
 })
+
+describe('reading signals', () => {
+  it('records link clicks and original opens without turning them into labels', async () => {
+    await seedFeed()
+    await seedItem(1)
+    const cookie = await sessionCookie()
+    for (const kind of ['link_click', 'open_original', 'open_original']) {
+      const res = await api('/items/1/events', {
+        method: 'POST',
+        cookie,
+        body: JSON.stringify({ kind }),
+      })
+      expect(res.status).toBe(200)
+    }
+    const rows = await env.DB.prepare(
+      'SELECT kind, COUNT(*) AS n FROM item_events GROUP BY kind ORDER BY kind',
+    ).all()
+    expect(rows.results).toEqual([
+      { kind: 'link_click', n: 1 },
+      { kind: 'open_original', n: 2 },
+    ])
+    const status = await api('/recommendation/status', { cookie })
+    const body = (await status.json()) as { labels: { total: number } }
+    expect(body.labels.total).toBe(0)
+  })
+})

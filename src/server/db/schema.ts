@@ -220,7 +220,16 @@ export const itemEvents = sqliteTable(
       .notNull()
       .references(() => items.id, { onDelete: 'cascade' }),
     kind: text('kind', {
-      enum: ['impression', 'open', 'close', 'like', 'dislike', 'clear_feedback'],
+      enum: [
+        'impression',
+        'open',
+        'close',
+        'like',
+        'dislike',
+        'clear_feedback',
+        'link_click',
+        'open_original',
+      ],
     }).notNull(),
     versionId: integer('version_id'),
     score: real('score'),

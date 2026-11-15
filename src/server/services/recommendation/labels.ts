@@ -6,6 +6,16 @@ export const DWELL_THRESHOLD_MS = 30_000
 /** 表示されてからこの秒数が過ぎても開かれていなければ、読まなかったと見なす */
 export const UNOPENED_AFTER = DAY
 
+/** `deriveLabels`が読む種別。これ以外の種別は記録するだけで、ラベルには使わない */
+export const LABEL_EVENT_KINDS = [
+  'impression',
+  'open',
+  'close',
+  'like',
+  'dislike',
+  'clear_feedback',
+] as const
+
 export type EventRow = {
   item_id: number
   kind: string

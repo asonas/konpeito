@@ -144,6 +144,8 @@ export const ITEM_EVENT_KINDS = [
   'like',
   'dislike',
   'clear_feedback',
+  'link_click',
+  'open_original',
 ] as const
 
 export const itemEventSchema = z.object({

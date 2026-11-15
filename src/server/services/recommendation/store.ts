@@ -2,7 +2,7 @@ import type { ITEM_EVENT_KINDS } from '../../../shared/schemas.ts'
 import { type ItemListRow, LIST_COLUMNS, mapItemListRow } from '../../db/queries/items.ts'
 import type { ItemForList } from '../../lib/client-shape.ts'
 import type { JevItem } from './jev.ts'
-import type { EventRow, StarRow } from './labels.ts'
+import { type EventRow, LABEL_EVENT_KINDS, type StarRow } from './labels.ts'
 
 export type PreferenceVersionRow = {
   id: number
@@ -247,9 +247,10 @@ export async function loadLabelSources(
     db
       .prepare(
         `SELECT item_id, kind, dwell_ms, created_at FROM item_events
-WHERE created_at >= ? ORDER BY created_at, id`,
+WHERE created_at >= ? AND kind IN (${LABEL_EVENT_KINDS.map(() => '?').join(', ')})
+ORDER BY created_at, id`,
       )
-      .bind(since),
+      .bind(since, ...LABEL_EVENT_KINDS),
     db
       .prepare('SELECT id, starred_at FROM items WHERE is_starred = 1 AND starred_at >= ?')
       .bind(since),

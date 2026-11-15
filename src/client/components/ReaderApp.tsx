@@ -26,6 +26,7 @@ import {
   unsubscribeFeed,
 } from '../lib/queries.ts'
 import { useReaderLayout } from '../lib/reader-layout.ts'
+import { openOriginal } from '../lib/reading-events.ts'
 import { itemMatches, itemRefOf } from '../lib/refs.ts'
 import { readerSearchOf, type Source, streamFromView } from '../lib/search-params.ts'
 import { sourceIdentity } from '../lib/sources.ts'
@@ -300,8 +301,8 @@ export function ReaderApp(props: {
       }
     },
     openOriginal: () => {
-      if (selected?.url) {
-        window.open(selected.url, '_blank', 'noopener,noreferrer')
+      if (selected) {
+        openOriginal(selected, !readOnly)
       }
     },
     toggleRead: () => {
@@ -522,11 +523,7 @@ export function ReaderApp(props: {
                 pendingFullRef.current = ref
                 selectItem(item, true)
               },
-              onOpenOriginal: (item) => {
-                if (item.url) {
-                  window.open(item.url, '_blank', 'noopener,noreferrer')
-                }
-              },
+              onOpenOriginal: (item) => openOriginal(item, !readOnly),
             }}
             readOnly={readOnly}
           />
