@@ -32,10 +32,12 @@ describe('createActiveTimer', () => {
     expect(timer.flush(40_000)).toBe(10_000)
   })
 
-  it('返した時間は次に持ち越さず、次の操作まで計測を止める', () => {
+  it('返した時間は次に持ち越さず、再開するまでは操作があっても数えない', () => {
     const timer = createActiveTimer(0, true)
     expect(timer.flush(10_000)).toBe(10_000)
-    timer.activity(100_000)
+    timer.activity(20_000)
+    timer.activity(30_000)
+    timer.resume(100_000)
     expect(timer.flush(105_000)).toBe(5_000)
   })
 })

@@ -500,14 +500,11 @@ button:not(:disabled),
   .stats-table td::before {
     content: attr(data-label);
     color: var(--text-muted);
+    text-align: start;
   }
 
   .stats-table tr {
     border-block-end: 1px solid var(--line);
-  }
-
-  .stats-table td::before {
-    text-align: start;
   }
 
   .stats-bar {

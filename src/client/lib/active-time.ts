@@ -8,7 +8,7 @@ export type ActiveTimer = {
   pause: (at: number) => void
   /** ウィンドウがフォーカスを得た時に呼ぶ */
   resume: (at: number) => void
-  /** 貯めた時間を返して0に戻す。次の操作か`resume`まで計測を止める */
+  /** 貯めた時間を返して0に戻す。次の`resume`まで計測を止め、その間の操作は数えない */
   flush: (at: number) => number
 }
 
@@ -49,6 +49,8 @@ export function createActiveTimer(startedAt: number, focused: boolean): ActiveTi
     flush(at) {
       settle(at)
       lastActivity = null
+      // 隠れる時に`blur`が来るとは限らないので、隠れている間の操作から計測が始まらないようにする
+      hasFocus = false
       const elapsed = total
       total = 0
       return elapsed

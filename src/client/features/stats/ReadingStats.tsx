@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { Link } from '@tanstack/react-router'
+import { Link, useRouter } from '@tanstack/react-router'
 import { ArrowLeft } from 'lucide-react'
 import { useId } from 'react'
 import { feedTitle } from '../../../shared/feed.ts'
@@ -19,9 +19,12 @@ type Counts = ReadingStats['totals']
 
 export function ReadingStatsPage(props: { days: ReadingStatsDays }) {
   const t = useMessages()
+  const router = useRouter()
   const query = useQuery({
     queryKey: queryKeys.readingStats(props.days),
     queryFn: () => fetchReadingStats(props.days),
+    // 記事を読んでから開き直した時に取り直す。届くまでは前回の集計を表示する
+    staleTime: 0,
   })
   const data = query.data
 
@@ -33,6 +36,20 @@ export function ReadingStatsPage(props: { days: ReadingStatsDays }) {
             to="/"
             aria-label={t.stats.back}
             className={buttonVariants({ variant: 'ghost', size: 'icon' })}
+            onClick={(event) => {
+              // 統計を開く前に見ていたフィードや記事へ戻す。直接開いた時は履歴が無いので、リンク先の`/`へ行く
+              // 修飾キー付きのクリックは新しいタブで`/`を開く操作なので、このタブの履歴は動かさない
+              const plain =
+                event.button === 0 &&
+                !event.metaKey &&
+                !event.ctrlKey &&
+                !event.shiftKey &&
+                !event.altKey
+              if (plain && !event.defaultPrevented && router.history.canGoBack()) {
+                event.preventDefault()
+                router.history.back()
+              }
+            }}
           >
             <ArrowLeft className="h-4 w-4" />
           </Link>
@@ -44,6 +61,8 @@ export function ReadingStatsPage(props: { days: ReadingStatsDays }) {
               key={days}
               to="/stats"
               search={days === DEFAULT_READING_STATS_DAYS ? {} : { days: Number(days) }}
+              // 期間を切り替えても履歴を積まず、戻るリンクが1回でリーダーへ戻れるようにする
+              replace
               aria-current={days === props.days ? 'page' : undefined}
               className={buttonVariants({
                 variant: days === props.days ? 'toggle' : 'ghost',
