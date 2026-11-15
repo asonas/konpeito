@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatBytes, formatDateTime, formatRelative } from './format.ts'
+import { formatBytes, formatDateTime, formatDuration, formatRelative } from './format.ts'
 
 describe('formatDateTime', () => {
   it('日本時間で、時刻と日付を中黒でつなぐ', () => {
@@ -39,5 +39,14 @@ describe('formatBytes', () => {
     expect(formatBytes(2048)).toBe('2.0 KB')
     expect(formatBytes(3 * 1024 * 1024)).toBe('3.0 MB')
     expect(formatBytes(1024 ** 3)).toBe('1.00 GB')
+  })
+})
+
+describe('formatDuration', () => {
+  it('1分未満は秒、1時間未満は分、それ以上は時間と分で表す', () => {
+    expect(formatDuration(59_999, 'en')).toBe('59 sec')
+    expect(formatDuration(60_000, 'en')).toBe('1 min')
+    expect(formatDuration(3_599_999, 'en')).toBe('59 min')
+    expect(formatDuration(3_600_000 + 23 * 60_000, 'en')).toBe('1 hr 23 min')
   })
 })

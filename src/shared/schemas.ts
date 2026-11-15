@@ -157,6 +157,13 @@ export const recommendationsQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).default(50),
 })
 
+export const READING_STATS_DAYS = ['7', '30', '90'] as const
+export const DEFAULT_READING_STATS_DAYS = '30'
+
+export const readingStatsQuerySchema = z.object({
+  days: z.enum(READING_STATS_DAYS).default(DEFAULT_READING_STATS_DAYS),
+})
+
 export const preferenceSchema = z.object({
   body: z.string().trim().min(1).max(4000),
 })

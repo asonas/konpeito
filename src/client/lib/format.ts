@@ -65,6 +65,20 @@ export function formatRelative(
   return formatDate(unixSec, locale)
 }
 
+/** 「45秒」「12分」「1時間23分」という形式を返す。秒より下と、1分以上の秒は切り捨てる */
+export function formatDuration(ms: number, locale: Locale = getLocale()): string {
+  const t = getMessages(locale)
+  const seconds = Math.floor(ms / 1000)
+  if (seconds < 60) {
+    return t.format.durationSeconds(seconds)
+  }
+  const minutes = Math.floor(seconds / 60)
+  if (minutes < 60) {
+    return t.format.durationMinutes(minutes)
+  }
+  return t.format.durationHours(Math.floor(minutes / 60), minutes % 60)
+}
+
 export function formatBytes(bytes: number): string {
   if (bytes < 1024) {
     return `${bytes} B`

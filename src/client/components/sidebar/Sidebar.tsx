@@ -1,6 +1,13 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
-import { AlertTriangle, LoaderCircle, Plus, Search, Settings } from 'lucide-react'
+import {
+  AlertTriangle,
+  ChartNoAxesColumn,
+  LoaderCircle,
+  Plus,
+  Search,
+  Settings,
+} from 'lucide-react'
 import { type ReactNode, useRef, useState } from 'react'
 import { feedTitle } from '../../../shared/feed.ts'
 import { useMessages } from '../../i18n/I18nProvider.tsx'
@@ -292,6 +299,11 @@ export function Sidebar(props: {
             <DropdownItem onClick={props.onAddFeed}>{t.sidebar.addFeed}</DropdownItem>
             <DropdownItem onClick={props.onCreateTag}>{t.sidebar.createTag}</DropdownItem>
           </DropdownMenu>
+        )}
+        {props.readOnly ? null : (
+          <IconLink label={t.stats.title} to="/stats">
+            <ChartNoAxesColumn className="h-4 w-4" />
+          </IconLink>
         )}
         <IconLink
           label={t.common.settings}
