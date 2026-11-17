@@ -100,6 +100,7 @@ export const ja: Messages = {
     showDiff: '変更点を表示',
     hideDiff: '変更点を隠す',
     openOriginal: '元記事を開く',
+    similarArticles: '似ている記事',
     nextArticle: '次の記事へ',
     caughtUp: 'すべての記事を読み終えました',
     markedRead: '既読にしました',

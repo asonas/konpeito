@@ -31,6 +31,7 @@ import { ExternalIconLink, IconLink } from '../ui/icon-button.tsx'
 import { ImageLightbox } from '../ui/lightbox.tsx'
 import { AppTooltip } from '../ui/tooltip.tsx'
 import { FeedbackButtons, useBackgroundOpenSignal, useReadingSession } from './ReadingFeedback.tsx'
+import { SimilarItems } from './SimilarItems.tsx'
 
 export function ItemView(props: {
   itemRef: string | undefined
@@ -236,6 +237,7 @@ export function ItemView(props: {
             />
           ) : null}
           <SafeHtml html={html} lang={item.language} className={`${ARTICLE_BODY_CLASS} mt-6`} />
+          {props.recordReading ? <SimilarItems itemId={item.id} feeds={props.feeds} /> : null}
           <div className="mt-10 flex justify-center">
             {props.hasNext ? (
               <Button variant="ghost" onClick={props.onNext}>

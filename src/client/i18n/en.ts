@@ -103,6 +103,7 @@ export const en = {
     showDiff: 'Show changes',
     hideDiff: 'Hide changes',
     openOriginal: 'Open original',
+    similarArticles: 'Similar articles',
     nextArticle: 'Next article',
     caughtUp: 'You’re all caught up',
     markedRead: 'Marked as read',

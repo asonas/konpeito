@@ -57,6 +57,7 @@ export const queryKeys = {
   feedback: (id: number) => ['feedback', id] as const,
   recommendationStatus: ['recommendation-status'] as const,
   readingStats: (days: string) => ['reading-stats', days] as const,
+  similarItems: (id: number) => ['similar-items', id] as const,
 }
 
 async function okJson<T>(res: {
@@ -369,6 +370,14 @@ export async function postItemEvent(
 export async function fetchFeedback(id: number): Promise<Feedback> {
   const body = await okJson(await api.items[':id'].feedback.$get({ param: { id: String(id) } }))
   return body.feedback
+}
+
+type SimilarItemsOk = InferResponseType<(typeof api.items)[':id']['similar']['$get'], 200>
+export type SimilarItem = SimilarItemsOk['items'][number]
+
+export async function fetchSimilarItems(id: number): Promise<SimilarItem[]> {
+  const body = await okJson(await api.items[':id'].similar.$get({ param: { id: String(id) } }))
+  return body.items
 }
 
 export async function fetchRecommendationStatus(): Promise<RecommendationStatus> {
