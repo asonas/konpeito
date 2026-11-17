@@ -201,6 +201,37 @@ async function ensureQueue(name) {
   throw new CliError(`Could not create the queue ${name}.\n\n${result.output.trim()}${hint}`)
 }
 
+// Keep in step with EMBEDDING_DIMENSIONS in src/server/services/embedding/deps.ts.
+const VECTOR_DIMENSIONS = 256
+
+function vectorIndexName(worker) {
+  return `${worker}-items`
+}
+
+// Similar articles need Workers AI and a Vectorize index. They are an extra, so
+// a failure here turns the feature off instead of stopping the deploy.
+async function ensureVectorIndex(name) {
+  const result = await tryWrangler([
+    'vectorize',
+    'create',
+    name,
+    `--dimensions=${VECTOR_DIMENSIONS}`,
+    '--metric=cosine',
+  ])
+  if (result.code === 0) {
+    info(`Created the vector index ${name}.`)
+    return name
+  }
+  if (/already exists|duplicate/i.test(result.output)) {
+    info(`Using the existing vector index ${name}.`)
+    return name
+  }
+  info(`Could not create the vector index ${name}. Similar articles stay off.`)
+  const detail = result.output.trim()
+  if (detail) info(detail)
+  return null
+}
+
 function buildDeployConfig(state) {
   if (!fs.existsSync(buildConfigPath)) {
     throw new CliError(`This package is missing its build output (${buildConfigPath}).`)
@@ -230,6 +261,13 @@ function buildDeployConfig(state) {
   producer.queue = state.queues.main
   consumer.queue = state.queues.main
   consumer.dead_letter_queue = state.queues.dlq
+
+  // Neither has a local simulation, so wrangler.jsonc leaves them out and only
+  // a deployed Worker gets them.
+  if (state.vectorize?.index) {
+    config.ai = { binding: 'AI' }
+    config.vectorize = [{ binding: 'VECTORIZE', index_name: state.vectorize.index }]
+  }
 
   if (state.domain) {
     config.routes = [{ pattern: state.domain, custom_domain: true }]
@@ -415,6 +453,7 @@ async function setup(values) {
   info(`Domain    ${state.domain ?? 'workers.dev'}`)
   info(`Database  ${state.database.name}${location ? ` (${location})` : ''}`)
   info(`Queues    ${state.queues.main}, ${state.queues.dlq}`)
+  info(`Vectors   ${vectorIndexName(worker)}`)
   blank()
   if (!assumeYes && !(await askYesNo('Create these on Cloudflare?', true))) {
     throw new CliError('Nothing was changed.')
@@ -427,6 +466,8 @@ async function setup(values) {
   })
   await ensureQueue(state.queues.main)
   await ensureQueue(state.queues.dlq)
+  const index = await ensureVectorIndex(vectorIndexName(worker))
+  if (index) state.vectorize = { index }
 
   const bootstrapToken = randomBytes(32).toString('hex')
   const output = await migrateAndDeploy(state, (dir) => {
@@ -457,7 +498,13 @@ async function setup(values) {
   info(`Settings saved to ${stateFileOf(state.worker)}.`)
 }
 
-async function deployUpdate(state) {
+async function deployUpdate(recorded) {
+  let state = recorded
+  if (!state.vectorize?.index) {
+    heading('Resources')
+    const index = await ensureVectorIndex(vectorIndexName(state.worker))
+    if (index) state = { ...state, vectorize: { index } }
+  }
   const output = await migrateAndDeploy(state)
 
   const next = writeState({ ...state, url: findWorkerUrl(output, state) ?? state.url })
@@ -732,6 +779,7 @@ function status() {
     info(`Domain    ${state.domain ?? 'workers.dev'}`)
     info(`Database  ${state.database.name} (${state.database.id})`)
     info(`Queues    ${state.queues.main}, ${state.queues.dlq}`)
+    info(`Vectors   ${state.vectorize?.index ?? 'none'}`)
     info(`Updated   ${state.updatedAt ?? state.createdAt}`)
   }
 }

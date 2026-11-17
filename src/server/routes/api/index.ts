@@ -65,6 +65,8 @@ import {
   requireSession,
   type SessionRow,
 } from '../../middleware/session.ts'
+import { embeddingDeps } from '../../services/embedding/deps.ts'
+import { findSimilarItems } from '../../services/embedding/jobs.ts'
 import type { OpmlFeed } from '../../services/opml.ts'
 import { loadLabels } from '../../services/recommendation/jobs.ts'
 import { loadReadingStats } from '../../services/recommendation/stats.ts'
@@ -253,6 +255,19 @@ export const api = new Hono<AppEnv>()
   })
   .get('/items/:id/feedback', withRowId('items'), async (c) => {
     return c.json({ feedback: await getFeedback(c.env.DB, c.get('rowId')) })
+  })
+  .get('/items/:id/similar', withRowId('items'), async (c) => {
+    const deps = embeddingDeps(c.env)
+    if (deps === null) {
+      return c.json({ items: [] })
+    }
+    try {
+      return c.json({ items: await findSimilarItems(c.env.DB, deps, c.get('rowId')) })
+    } catch (error) {
+      // 類似記事は付加的な表示なので、インデックスの障害で記事の表示を妨げない
+      console.error({ event: 'embedding.similar_error', message: String(error) })
+      return c.json({ items: [] })
+    }
   })
   .post('/items/read', zv('json', readSchema), async (c) => {
     const body = c.req.valid('json')

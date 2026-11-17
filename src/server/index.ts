@@ -23,6 +23,27 @@ async function runRecommendation(
   }
 }
 
+/** 埋め込みも外部のサービスに依存する付加機能なので、失敗してもフィードの取得を止めない */
+async function runEmbedding(env: Env, now: number): Promise<void> {
+  const { embeddingDeps } = await import('./services/embedding/deps.ts')
+  const deps = embeddingDeps(env)
+  if (deps === null) {
+    return
+  }
+  const jobs = await import('./services/embedding/jobs.ts')
+  const steps = [
+    ['purge', () => jobs.purgeDeletedVectors(env.DB, deps)],
+    ['embed', () => jobs.embedPendingItems(env.DB, deps, now)],
+  ] as const
+  for (const [step, run] of steps) {
+    try {
+      await run()
+    } catch (error) {
+      console.error({ event: 'embedding.error', step, message: String(error) })
+    }
+  }
+}
+
 export default {
   fetch(request, env, ctx) {
     if (env.DEMO_MODE === '1') {
@@ -44,6 +65,7 @@ export default {
     if (controller.cron === '*/5 * * * *') {
       await jobs.dispatchDueFeeds(env, now)
       await runRecommendation('score', (r) => r.scorePendingItems(env, now))
+      await runEmbedding(env, now)
       return
     }
     await jobs.backfillPublicIds(env.DB)

@@ -241,3 +241,16 @@ export const itemEvents = sqliteTable(
     index('item_events_created').on(table.createdAt),
   ],
 )
+
+export const itemEmbeddings = sqliteTable('item_embeddings', {
+  itemId: integer('item_id')
+    .primaryKey()
+    .references(() => items.id, { onDelete: 'cascade' }),
+  model: text('model'),
+  sourceKey: text('source_key').notNull(),
+  embeddedAt: integer('embedded_at').notNull(),
+})
+
+export const embeddingDeletions = sqliteTable('embedding_deletions', {
+  itemId: integer('item_id').primaryKey(),
+})
